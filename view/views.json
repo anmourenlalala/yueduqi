@@ -1,0 +1,67 @@
+{
+  "views": [
+    {
+      "id": "原始文本",
+      "titleTemplate": "原始文本：{filename}",
+      "suffix": "",
+      "keybind": "a",
+      "promptId": "测试",
+      "openaiConfig": {
+        "apiKey": "sk-1JZ5PKAXQ7AddGLSaZWOcmKEBihjR84BPNAkPzHKfZCrWprj",
+        "apiUrl": "http://127.0.0.1:3000",
+        "model": "deepseek-r1:7b"
+      },
+      "undefined": "qwen-plus-2025-07-28"
+    },
+    {
+      "id": "分析文本",
+      "titleTemplate": "分析文本：{filename}",
+      "suffix": "_分析文本",
+      "keybind": "d",
+      "promptId": "测试",
+      "openaiConfig": {
+        "apiKey": "sk-1JZ5PKAXQ7AddGLSaZWOcmKEBihjR84BPNAkPzHKfZCrWprj",
+        "apiUrl": "http://127.0.0.1:3000",
+        "model": "deepseek-r1:7b"
+      }
+    },
+    {
+      "id": "学习题目",
+      "titleTemplate": "学习题目：{filename}",
+      "suffix": "_学习题目",
+      "keybind": "b",
+      "promptId": "测试",
+      "openaiConfig": {
+        "apiKey": "sk-1JZ5PKAXQ7AddGLSaZWOcmKEBihjR84BPNAkPzHKfZCrWprj",
+        "apiUrl": "http://127.0.0.1:3000",
+        "model": "deepseek-r1:7b"
+      }
+    },
+    {
+      "id": "学习结果",
+      "titleTemplate": "学习结果：{filename}",
+      "suffix": "_学习结果",
+      "keybind": "c",
+      "promptId": "测试",
+      "openaiConfig": {
+        "apiKey": "sk-1JZ5PKAXQ7AddGLSaZWOcmKEBihjR84BPNAkPzHKfZCrWprj",
+        "apiUrl": "http://127.0.0.1:3000",
+        "model": "deepseek-r1:7b"
+      }
+    },
+    {
+      "id": "学习总结",
+      "titleTemplate": "学习总结：{filename}",
+      "suffix": "_学习总结",
+      "keybind": "e",
+      "openaiConfig": {
+        "apiKey": "sk-1JZ5PKAXQ7AddGLSaZWOcmKEBihjR84BPNAkPzHKfZCrWprj",
+        "apiUrl": "http://127.0.0.1:3000",
+        "model": "deepseek-r1:7b"
+      },
+      "promptId": "测试"
+    }
+  ],
+  "createdAt": "2025-12-22T07:25:25.321Z",
+  "updatedAt": "2026-03-01T10:07:07.357Z"
+}

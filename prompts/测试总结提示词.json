@@ -1,0 +1,8 @@
+{
+  "name": "测试总结提示词",
+  "content": "步骤名是数量.步骤名，你在总结的时候要评价每个步骤做的怎么样。",
+  "enableWorkflowControl": false,
+  "updatedAt": "2025-12-30T04:21:45.774Z",
+  "createdAt": "2025-12-30T04:21:45.774Z",
+  "history": []
+}

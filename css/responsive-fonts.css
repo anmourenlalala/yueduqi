@@ -1,0 +1,111 @@
+/**
+ * 响应式字体大小
+ * 根据屏幕尺寸自动调整基础字体大小
+ */
+
+/* ==================== 基础字体大小响应式调整 ==================== */
+
+/* 超大屏幕（≥1920px）- 稍微放大 */
+@media (min-width: 1920px) {
+    html {
+        font-size: 18px;
+    }
+}
+
+/* 大屏幕（≥1600px）- 正常大小 */
+@media (min-width: 1600px) and (max-width: 1919px) {
+    html {
+        font-size: 17px;
+    }
+}
+
+/* 中等屏幕（≥1200px）- 正常大小 */
+@media (min-width: 1200px) and (max-width: 1599px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+/* 平板设备（768px - 1199px）- 稍微缩小 */
+@media (min-width: 768px) and (max-width: 1199px) {
+    html {
+        font-size: 15px;
+    }
+}
+
+/* 手机设备（≤767px）- 进一步缩小 */
+@media (max-width: 767px) {
+    html {
+        font-size: 14px;
+    }
+}
+
+/* 小屏手机（≤480px）- 最小字体 */
+@media (max-width: 480px) {
+    html {
+        font-size: 13px;
+    }
+}
+
+/* 超小屏手机（≤360px）- 最小字体 */
+@media (max-width: 360px) {
+    html {
+        font-size: 12px;
+    }
+}
+
+/* ==================== 特定元素的字体大小微调 ==================== */
+
+/* 手机端按钮字体优化 */
+@media (max-width: 768px) {
+    .btn {
+        font-size: calc(var(--text-sm) * 0.95);
+    }
+    
+    .btn-icon-text span:last-child {
+        font-size: calc(var(--text-xs) * 0.9);
+    }
+}
+
+/* 手机端标题字体优化 */
+@media (max-width: 768px) {
+    .pane-bar {
+        font-size: calc(var(--text-sm) * 0.9);
+    }
+    
+    .sidebar-header {
+        font-size: calc(var(--text-xs) * 0.9);
+    }
+    
+    .panel-main-title {
+        font-size: calc(var(--text-xl) * 0.9);
+    }
+}
+
+/* 手机端内容区域字体优化 */
+@media (max-width: 768px) {
+    .pane-content {
+        font-size: calc(var(--font-size) * 0.95);
+        line-height: 1.6;
+    }
+    
+    .panel-main-body {
+        font-size: calc(var(--text-base) * 0.95);
+    }
+}
+
+/* 小屏手机进一步优化 */
+@media (max-width: 480px) {
+    .pane-content {
+        font-size: calc(var(--font-size) * 0.9);
+    }
+    
+    .btn {
+        font-size: calc(var(--text-sm) * 0.9);
+    }
+    
+    .panel-main-title {
+        font-size: calc(var(--text-lg) * 1.1);
+    }
+}
+

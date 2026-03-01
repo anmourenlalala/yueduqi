@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI工作流内容</title>
+    
+    <!-- 外部库 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+    
+    <!-- Mermaid初始化 -->
+    <script type="module">
+        import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: "default"
+        });
+        window.mermaid = mermaid;
+    </script>
+    
+    <!-- 路径工具 -->
+    <script type="module">
+        import { pathUtils } from './js/utils/path.js';
+        window.path = pathUtils;
+    </script>
+    
+    <!-- CSS样式文件 -->
+    <link rel="stylesheet" href="css/themes.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    
+    <style>
+        /* AI查看器专用样式 */
+        .ai-viewer-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .ai-viewer-header {
+            padding: 12px 20px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .ai-viewer-header h1 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .ai-viewer-paste-targets {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .ai-viewer-main {
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <!-- AI查看器容器 -->
+    <div class="ai-viewer-container">
+        <!-- 顶部栏（隐藏的导航栏功能） -->
+        <div class="ai-viewer-header">
+            <h1>AI工作流内容</h1>
+            <div class="ai-viewer-paste-targets" id="ai-paste-targets-container">
+                <span style="font-size: 11px; font-weight: bold; color: var(--text-muted);">Ctrl+V:</span>
+            </div>
+        </div>
+        
+        <!-- 主内容区域 -->
+        <div class="ai-viewer-main">
+            <div class="viewer-grid" id="ai-viewer-grid">
+                <!-- 动态添加视图 -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- 全屏模态 -->
+    <div class="fullscreen-modal" id="fullscreen-modal">
+        <div class="fullscreen-content">
+            <div id="fullscreen-body"></div>
+        </div>
+    </div>
+    
+    <!-- 主应用脚本 -->
+    <script type="module" src="js/ai-viewer-app.js"></script>
+</body>
+</html>
+
+
+
+
+
+

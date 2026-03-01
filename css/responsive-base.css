@@ -1,0 +1,185 @@
+/**
+ * 响应式基础系统
+ * 确保无论浏览器缩放比例如何，界面都保持等比例显示
+ * 
+ * 核心策略：
+ * 1. 使用rem作为主要单位，基于根字体大小
+ * 2. 根字体大小使用vw单位，实现视口相关缩放
+ * 3. 所有尺寸都基于rem，确保等比例缩放
+ * 4. 使用百分比和flex/grid实现布局的流动性
+ */
+
+/* ==================== 根字体大小系统 ==================== */
+/* 使用vw单位，让根字体大小随视口宽度变化，实现真正的响应式 */
+/* 基准：16px = 1rem，在1920px宽度下 */
+html {
+    font-size: clamp(12px, 0.833vw, 18px);
+    /* 最小12px，最大18px，在100vw下约为16px */
+}
+
+/* 超大屏幕优化 */
+@media (min-width: 1920px) {
+    html {
+        font-size: 18px;
+    }
+}
+
+/* 大屏幕 */
+@media (min-width: 1600px) and (max-width: 1919px) {
+    html {
+        font-size: 17px;
+    }
+}
+
+/* 中等屏幕 */
+@media (min-width: 1200px) and (max-width: 1599px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+/* 平板 */
+@media (min-width: 768px) and (max-width: 1199px) {
+    html {
+        font-size: 15px;
+    }
+}
+
+/* 手机 */
+@media (max-width: 767px) {
+    html {
+        font-size: 14px;
+    }
+}
+
+/* 小屏手机 */
+@media (max-width: 480px) {
+    html {
+        font-size: 13px;
+    }
+}
+
+/* 超小屏 */
+@media (max-width: 360px) {
+    html {
+        font-size: 12px;
+    }
+}
+
+/* ==================== 响应式间距系统 ==================== */
+/* 所有间距都基于rem，确保等比例缩放 */
+:root {
+    --space-1: 0.25rem;   /* 4px基准 */
+    --space-2: 0.5rem;    /* 8px基准 */
+    --space-3: 0.75rem;   /* 12px基准 */
+    --space-4: 1rem;      /* 16px基准 */
+    --space-5: 1.25rem;   /* 20px基准 */
+    --space-6: 1.5rem;    /* 24px基准 */
+    --space-8: 2rem;      /* 32px基准 */
+    --space-10: 2.5rem;   /* 40px基准 */
+    --space-12: 3rem;     /* 48px基准 */
+    --space-16: 4rem;     /* 64px基准 */
+    --space-20: 5rem;     /* 80px基准 */
+}
+
+/* ==================== 响应式字体系统 ==================== */
+:root {
+    --text-xs: 0.6875rem;    /* 11px */
+    --text-sm: 0.8125rem;    /* 13px */
+    --text-base: 0.9375rem;  /* 15px */
+    --text-lg: 1.0625rem;    /* 17px */
+    --text-xl: 1.25rem;      /* 20px */
+    --text-2xl: 1.5rem;      /* 24px */
+    --text-3xl: 1.875rem;    /* 30px */
+    --text-4xl: 2.25rem;     /* 36px */
+}
+
+/* ==================== 响应式圆角系统 ==================== */
+:root {
+    --radius-xs: 0.25rem;    /* 4px */
+    --radius-sm: 0.375rem;   /* 6px */
+    --radius-md: 0.5rem;     /* 8px */
+    --radius-lg: 0.75rem;    /* 12px */
+    --radius-xl: 1rem;       /* 16px */
+    --radius-2xl: 1.5rem;    /* 24px */
+    --radius-full: 9999px;
+}
+
+/* ==================== 响应式边框系统 ==================== */
+:root {
+    --border-width-thin: 0.0625rem;  /* 1px */
+    --border-width-base: 0.125rem;    /* 2px */
+    --border-width-thick: 0.1875rem;  /* 3px */
+}
+
+/* ==================== 容器宽度系统 ==================== */
+/* 使用百分比和max-width结合，确保流动性 */
+:root {
+    --container-max-width: 100%;
+    --sidebar-width: 20rem;
+    --sidebar-min-width: 12rem;
+    --sidebar-max-width: 25rem;
+}
+
+/* ==================== 响应式工具类 ==================== */
+/* 确保所有工具类都使用rem单位 */
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.w-screen { width: 100vw; }
+.h-screen { height: 100vh; }
+
+/* ==================== 等比例缩放保证 ==================== */
+/* 确保所有固定尺寸都转换为rem */
+* {
+    box-sizing: border-box;
+}
+
+/* 防止某些元素使用固定px */
+img, svg, video, canvas, audio, iframe, embed, object {
+    max-width: 100%;
+    height: auto;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

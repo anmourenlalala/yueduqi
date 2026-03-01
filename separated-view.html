@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分离视图</title>
+    <link rel="stylesheet" href="css/themes.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/responsive-fonts.css">
+    <style>
+        /* 分离窗口专用样式 - 确保移动端显示完整 */
+        .app-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+        
+        .main-layout {
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .viewer-grid {
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1fr;
+            height: 100%;
+        }
+        
+        .pane {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+            height: 100%;
+        }
+        
+        .pane-content {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .pane-content {
+                padding: 3% 4%;
+                font-size: calc(var(--font-size) * 0.9);
+                line-height: 1.6;
+            }
+            
+            .pane-bar {
+                padding: 12px 16px;
+                font-size: 13px;
+                flex-shrink: 0;
+            }
+
+            /* 分离窗口中的导航栏始终可见，避免被主界面移动端样式隐藏 */
+            .pane-bar.separated-pane-bar > div:last-child,
+            .pane-bar.separated-pane-bar {
+                display: flex !important;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <!-- Mermaid初始化 -->
+    <script type="module">
+        import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: "default"
+        });
+        window.mermaid = mermaid;
+    </script>
+</head>
+<body>
+    <div class="app-container" style="height: 100vh; display: flex; flex-direction: column;">
+        <!-- 顶部标题栏（分离窗口中隐藏） -->
+        <div class="header-wrapper" style="display: none;">
+            <header class="header">
+                <div class="header-container">
+                    <div class="header-row-top">
+                        <div class="header-left">
+                            <div class="path-box">
+                                <span class="path-icon">📂</span>
+                                <input type="text" id="dir-path" placeholder="输入路径..." class="path-input" readonly>
+                            </div>
+                            <div class="current-path-display" id="current-path-display"></div>
+                        </div>
+                        <div class="header-row-first">
+                            <div class="current-prompt-badge" id="current-prompt-display" title="" style="display: none;"></div>
+                            <div class="paste-targets-group" id="paste-targets-container">
+                                <span class="paste-label">Ctrl+V:</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="header-right" id="header-controls">
+                        <div class="header-actions">
+                            <button class="btn btn-icon-text" id="btn-prompt">
+                                <span>📝</span>
+                                <span>提示词</span>
+                            </button>
+                            <button class="btn btn-icon-text" id="btn-settings">
+                                <span>⚙️</span>
+                                <span>设置</span>
+                            </button>
+                            <button class="btn btn-icon-only" id="btn-theme" title="切换主题">🌓</button>
+                            <button class="btn btn-icon-text" id="btn-layout">
+                                <span>📐</span>
+                                <span>布局</span>
+                            </button>
+                            <button class="btn btn-icon-text" id="btn-workflow">
+                                <span>🔄</span>
+                                <span>工作流</span>
+                            </button>
+                            <button class="btn btn-icon-text" id="btn-event">
+                                <span>📅</span>
+                                <span>事件</span>
+                            </button>
+                            <button class="btn btn-icon-text" id="btn-batch">
+                                <span>📦</span>
+                                <span>批量执行</span>
+                            </button>
+                            <button class="btn btn-icon-text" id="btn-feedback">
+                                <span>📊</span>
+                                <span>反馈系统</span>
+                            </button>
+                            <button class="btn btn-icon-text" id="btn-copy">
+                                <span>📋</span>
+                                <span>复制</span>
+                            </button>
+                            <button class="btn btn-icon-text" id="btn-close-separated" style="background: var(--accent-red); color: white;">
+                                <span>✕</span>
+                                <span>关闭</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+        </div>
+        
+        <!-- 主布局 -->
+        <div class="main-layout" style="flex: 1; overflow: hidden; min-height: 0;">
+            <div class="viewer-grid" id="viewer-grid" style="display: grid; grid-template-columns: 1fr; height: 100%; min-height: 0; overflow: hidden;">
+                <!-- 动态添加 pane -->
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { deserializeSnapshot, restoreViewStateFromSnapshot } from './js/modules/dragSeparator/stateSnapshot.js';
+        import { establishChannel, sendMessage, onMessage } from './js/modules/dragSeparator/communication.js';
+        import { state, updateViewsMap } from './js/core/state.js';
+        import { loadFileViews } from './js/modules/editor.js';
+        import { applyThemeCSS } from './js/modules/themeManager.js';
+        
+        // 从URL或sessionStorage获取快照数据
+        const urlParams = new URLSearchParams(window.location.search);
+        const snapshotKey = urlParams.get('key');
+        
+        let currentSnapshot = null;
+        let channelId = null;
+        let viewId = null;
+        
+        // 暴露state到全局
+        window.state = state;
+        
+        // 通知父窗口已准备好接收数据
+        if (window.opener) {
+            // 延迟发送，确保窗口已加载
+            setTimeout(() => {
+                try {
+                    window.opener.postMessage({ type: 'SEPARATED_VIEW_READY' }, window.location.origin);
+                } catch (e) {
+                    console.warn('发送ready消息失败:', e);
+                }
+            }, 100);
+        }
+        
+        // 监听来自父窗口的快照数据
+        let messageHandler = null;
+        let initialized = false;
+        
+        messageHandler = (event) => {
+            // 安全检查：只接受同源消息
+            if (event.origin !== window.location.origin) {
+                return;
+            }
+            
+            if (event.data && event.data.type === 'SNAPSHOT_DATA' && !initialized) {
+                const serializedSnapshot = event.data.snapshot;
+                if (serializedSnapshot) {
+                    initialized = true;
+                    // 清理sessionStorage中的临时数据
+                    if (event.data.key) {
+                        try {
+                            sessionStorage.removeItem(event.data.key);
+                        } catch (e) {}
+                    }
+                    // 移除监听器，避免重复处理
+                    if (messageHandler) {
+                        window.removeEventListener('message', messageHandler);
+                    }
+                    initSeparatedView(serializedSnapshot);
+                }
+            }
+        };
+        
+        window.addEventListener('message', messageHandler);
+        
+        async function initSeparatedView(serializedSnapshot) {
+            // 如果没有传入参数，尝试从sessionStorage获取
+            if (!serializedSnapshot && snapshotKey) {
+                try {
+                    serializedSnapshot = sessionStorage.getItem(snapshotKey);
+                    if (serializedSnapshot) {
+                        // 清理临时数据
+                        sessionStorage.removeItem(snapshotKey);
+                    }
+                } catch (e) {
+                    console.error('从sessionStorage读取快照数据失败:', e);
+                }
+            }
+            
+            if (!serializedSnapshot) {
+                document.getElementById('viewer-grid').innerHTML = 
+                    '<div style="padding: 20px; color: red;">错误：未找到快照数据</div>';
+                return;
+            }
+            
+            try {
+                // 反序列化快照
+                currentSnapshot = deserializeSnapshot(serializedSnapshot);
+                viewId = currentSnapshot.viewId;
+                
+                // 恢复全局状态
+                if (currentSnapshot.globalState) {
+                    state.originalPath = currentSnapshot.globalState.originalPath || null;
+                    state.currentDir = currentSnapshot.globalState.currentDir || '.';
+                    
+                    // 恢复所有视图配置（必须在加载文件之前）
+                    if (currentSnapshot.globalState.allViews && currentSnapshot.globalState.allViews.length > 0) {
+                        state.views = currentSnapshot.globalState.allViews;
+                        const { updateViewsMap } = await import('./js/core/state.js');
+                        updateViewsMap();
+                    }
+                    
+                    // 应用日间/夜间模式（必须在应用主题CSS之前）
+                    if (currentSnapshot.globalState.themeMode) {
+                        document.documentElement.setAttribute('data-theme', currentSnapshot.globalState.themeMode);
+                        localStorage.setItem('theme', currentSnapshot.globalState.themeMode);
+                    }
+                    
+                    // 应用主题CSS
+                    if (currentSnapshot.globalState.themeCSS) {
+                        applyThemeCSS(currentSnapshot.globalState.themeCSS);
+                    }
+                }
+                
+                // 恢复视图状态（这会恢复 panePaths 和 rawContents）
+                restoreViewStateFromSnapshot(currentSnapshot);
+                
+                // 初始化全局函数（供按钮使用）
+                const { handlePaste, copyViewContent } = await import('./js/modules/editor.js');
+                window.handlePaste = handlePaste;
+                window.copyViewContent = copyViewContent;
+                
+                // 创建视图DOM（只创建一个视图）
+                await createViewDOM();
+                
+                // 首次分离时，优先使用快照或恢复状态中的内容
+                // restoreViewStateFromSnapshot 已经恢复了 state.rawContents[viewId]
+                const hasSnapshotContent = currentSnapshot.fileState && 
+                                         currentSnapshot.fileState.rawContent && 
+                                         currentSnapshot.fileState.rawContent.trim() !== '';
+                const hasRestoredContent = state.rawContents && 
+                                         state.rawContents[viewId] && 
+                                         state.rawContents[viewId].trim() !== '';
+                
+                console.log('[分离窗口] 内容检查:', {
+                    hasSnapshotContent,
+                    hasRestoredContent,
+                    snapshotContentLength: currentSnapshot.fileState?.rawContent?.length || 0,
+                    restoredContentLength: state.rawContents?.[viewId]?.length || 0
+                });
+                
+                if (hasSnapshotContent || hasRestoredContent) {
+                    console.log('[分离窗口] 使用快照或恢复状态中的内容直接渲染');
+                    await renderSnapshotContent();
+                } else {
+                    console.log('[分离窗口] 快照和恢复状态中都没有内容，重新加载');
+                    await loadViewContent();
+                }
+                
+                // 建立通信通道（使用快照中的时间戳，确保与主窗口一致）
+                channelId = `view-separator-${viewId}-${currentSnapshot.timestamp}`;
+                console.log(`[分离窗口] 建立通信通道: ${channelId}`);
+                establishChannel(channelId);
+                
+                // 保存 channelId 到全局变量，供其他模块使用
+                window.channelId = channelId;
+                
+                // 监听 VIEW_SEPARATED 消息（确认通道已建立）
+                onMessage(channelId, (message) => {
+                    if (message.type === 'VIEW_SEPARATED') {
+                        console.log('[分离窗口] 收到 VIEW_SEPARATED 消息，通道已建立');
+                    } else if (message.type === 'PING' && message.from === 'main') {
+                        // 响应主窗口的ping，表示分离窗口仍然存在
+                        sendMessage(channelId, 'PONG', { viewId: viewId, from: 'separated' });
+                    } else if (message.type === 'MAIN_WINDOW_CLOSING') {
+                        // 主窗口即将关闭
+                        console.log('[分离窗口] 主窗口即将关闭');
+                    }
+                });
+                
+                // 使用BroadcastChannel监听主窗口的ping（用于持久化恢复）
+                const broadcastChannel = new BroadcastChannel(channelId);
+                broadcastChannel.onmessage = (event) => {
+                    if (event.data && event.data.type === 'PING' && event.data.from === 'main') {
+                        broadcastChannel.postMessage({ type: 'PONG', viewId: viewId, from: 'separated' });
+                    }
+                };
+                
+                // 监听来自主窗口的业务消息
+                onMessage(channelId, async (message) => {
+                    console.log('[分离窗口] 收到消息:', message.type, message);
+                    if (message.type === 'FILE_CHANGED') {
+                        console.log('[分离窗口] 收到文件切换通知，消息内容:', message);
+                        // 注意：sendMessage 会将 data 中的属性展开到 message 对象中
+                        // 所以应该直接访问 message.originalPath 而不是 message.data.originalPath
+                        const originalPath = message.originalPath;
+                        const allViews = message.allViews;
+                        const viewId = message.viewId;
+                        
+                        if (!originalPath) {
+                            console.warn('[分离窗口] 消息中没有 originalPath');
+                            return;
+                        }
+                        
+                        // 更新原始路径
+                        state.originalPath = originalPath;
+                        console.log('[分离窗口] 更新后的 originalPath:', state.originalPath);
+                        
+                        // 更新所有视图配置（确保文件路径计算正确）
+                        if (allViews && Array.isArray(allViews) && allViews.length > 0) {
+                            console.log('[分离窗口] 更新视图配置，数量:', allViews.length);
+                            state.views = allViews;
+                            const { updateViewsMap } = await import('./js/core/state.js');
+                            updateViewsMap();
+                            console.log('[分离窗口] 视图配置已更新');
+                        } else {
+                            console.warn('[分离窗口] 消息中没有 allViews 或 allViews 为空');
+                        }
+                        
+                        // 更新路径显示
+                        updatePathDisplay();
+                        
+                        // 重新加载视图（只加载当前分离的视图）
+                        console.log('[分离窗口] 开始重新加载视图内容...');
+                        await loadViewContent();
+                        console.log('[分离窗口] 视图内容重新加载完成');
+                    } else if (message.type === 'FONT_SIZE_CHANGED' && message.fontSize) {
+                        // 同步主界面设置的字体大小
+                        try {
+                            document.documentElement.style.setProperty('--font-size', message.fontSize);
+                            console.log('[分离窗口] 已同步字体大小为:', message.fontSize);
+                        } catch (e) {
+                            console.warn('[分离窗口] 同步字体大小失败:', e);
+                        }
+                    } else if (message.type === 'THEME_MODE_CHANGED' && message.themeMode) {
+                        // 同步主界面切换的日间/夜间模式
+                        try {
+                            document.documentElement.setAttribute('data-theme', message.themeMode);
+                            localStorage.setItem('theme', message.themeMode);
+                            console.log('[分离窗口] 已同步主题模式为:', message.themeMode);
+                        } catch (e) {
+                            console.warn('[分离窗口] 同步主题模式失败:', e);
+                        }
+                    } else if (message.type === 'VIEW_CONTENT_REFRESHED') {
+                        // 主窗口通知内容已刷新，分离窗口需要刷新DOM
+                        console.log(`[分离窗口] 收到主窗口刷新通知，视图ID: ${message.viewId}`);
+                        if (message.viewId === viewId) {
+                            // 重新加载视图内容
+                            await loadViewContent();
+                            console.log(`[分离窗口] 视图 ${viewId} 内容已刷新`);
+                        }
+                    }
+                });
+                
+                // 监听关闭事件
+                let closing = false;
+                window.addEventListener('beforeunload', () => {
+                    if (!closing) {
+                        closing = true;
+                        try {
+                            sendMessage(channelId, 'PAGE_CLOSING', { viewId: viewId });
+                        } catch (e) {
+                            console.warn('发送关闭消息失败:', e);
+                        }
+                    }
+                });
+                
+                // 关闭按钮
+                const closeBtn = document.getElementById('btn-close-separated');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', () => {
+                        closing = true;
+                        try {
+                            sendMessage(channelId, 'VIEW_RESTORED', { viewId: viewId });
+                            // 等待消息发送完成
+                            setTimeout(() => {
+                                window.close();
+                            }, 100);
+                        } catch (e) {
+                            console.warn('发送恢复消息失败:', e);
+                            window.close();
+                        }
+                    });
+                }
+                
+                // 更新路径显示
+                updatePathDisplay();
+                
+                // 初始化键盘快捷键
+                initKeyboardShortcuts();
+
+                // 初始化时从主窗口同步一次当前字体大小
+                syncFontSizeFromOpener();
+                
+            } catch (error) {
+                console.error('加载分离视图失败:', error);
+                document.getElementById('viewer-grid').innerHTML = 
+                    `<div style="padding: 20px; color: red;">错误：${error.message}</div>`;
+            }
+        }
+        
+        /**
+         * 更新浏览器标题栏（同步页面内容标题）
+         */
+        function updateBrowserTitle() {
+            const titleEl = document.getElementById(`title-${viewId}`);
+            if (titleEl) {
+                const titleText = titleEl.textContent.trim();
+                if (titleText) {
+                    document.title = titleText;
+                }
+            }
+        }
+        
+        /**
+         * 从主窗口同步当前字体大小到分离窗口
+         */
+        function syncFontSizeFromOpener() {
+            try {
+                if (!window.opener || window.opener.closed) return;
+                const openerRoot = window.opener.document.documentElement;
+                if (!openerRoot) return;
+                const computed = window.opener.getComputedStyle(openerRoot);
+                const fontSize = computed.getPropertyValue('--font-size');
+                if (fontSize && fontSize.trim()) {
+                    document.documentElement.style.setProperty('--font-size', fontSize.trim());
+                    console.log('[分离窗口] 初始化同步字体大小为:', fontSize.trim());
+                }
+            } catch (e) {
+                console.warn('[分离窗口] 初始化同步字体大小失败:', e);
+            }
+        }
+        
+        // 标题观察器（用于监听标题变化并自动更新浏览器标题栏）
+        let titleObserver = null;
+        
+        /**
+         * 设置标题变化监听器
+         */
+        function setupTitleObserver() {
+            // 如果已有观察器，先断开
+            if (titleObserver) {
+                titleObserver.disconnect();
+            }
+            
+            const titleEl = document.getElementById(`title-${viewId}`);
+            if (!titleEl) return;
+            
+            // 创建 MutationObserver 监听标题文本变化
+            titleObserver = new MutationObserver(() => {
+                updateBrowserTitle();
+            });
+            
+            // 监听文本内容变化
+            titleObserver.observe(titleEl, {
+                childList: true,
+                subtree: true,
+                characterData: true
+            });
+        }
+        
+        async function createViewDOM() {
+            const grid = document.getElementById('viewer-grid');
+            // 清空现有内容，确保只渲染一个视图
+            grid.innerHTML = '';
+            
+            const view = currentSnapshot.viewConfig;
+            
+            const pane = document.createElement('div');
+            pane.className = 'pane';
+            pane.style.cssText = 'display:flex;flex-direction:column;min-height:0;overflow:hidden;height:100%;';
+            pane.innerHTML = `
+                <div class="pane-bar separated-pane-bar" style="padding:12px 16px;font-size:var(--font-size);flex-shrink:0;display:flex;align-items:center;box-sizing:border-box;">
+                    <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;">
+                        <span id="title-${viewId}" style="word-wrap:break-word;word-break:break-all;line-height:1.4;font-size:var(--font-size);">${view.titleTemplate.replace('{filename}', '')}</span>
+                        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                            <span id="view-status-${viewId}" style="font-size:calc(var(--font-size) * 0.9);color:var(--accent-blue);font-weight:bold;">当前是：主视图</span>
+                            <span id="view-edit-status-${viewId}" style="font-size:calc(var(--font-size) * 0.9);color:var(--text-muted);font-weight:normal;">| 编辑模式：</span>
+                            <button id="view-edit-toggle-${viewId}" class="view-edit-toggle-btn" data-view-id="${viewId}" title="切换编辑模式">关</button>
+                            <button id="separated-toggle-theme-mode-btn" class="btn btn-icon-only" style="font-size:18px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:6px;background:var(--bg-tertiary);border:1px solid var(--border);color:var(--text-muted);cursor:pointer;transition:all 0.2s;" title="切换日间/夜间主题">🌓</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="pane-content md-render" id="view-${viewId}" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:3% 4%;font-size:var(--font-size);line-height:1.6;box-sizing:border-box;"></div>
+            `;
+            
+            grid.appendChild(pane);
+            
+            // 更新浏览器标题栏
+            updateBrowserTitle();
+            
+            // 设置标题变化监听器
+            setupTitleObserver();
+            
+            // 添加滚动监听
+            const paneContent = document.getElementById(`view-${viewId}`);
+            if (paneContent) {
+                paneContent.addEventListener('scroll', function() {
+                    if (!state.scrollPositions) state.scrollPositions = {};
+                    state.scrollPositions[viewId] = this.scrollTop;
+                });
+            }
+            
+            // 绑定按钮事件
+            await bindViewButtons(pane, viewId);
+        }
+        
+        /**
+         * 绑定视图按钮事件（分离窗口中只保留编辑模式切换按钮和主题切换按钮）
+         */
+        async function bindViewButtons(pane, viewId) {
+            // 为编辑模式切换按钮添加事件监听器 - 直接使用主界面的完整逻辑
+            const { setupEditModeToggle } = await import('./js/modules/viewManager.js');
+            // 使用主界面的完整编辑模式切换逻辑，包括状态保存、防重复点击等
+            setupEditModeToggle(viewId);
+            
+            // 为分离窗口的主题切换按钮添加事件监听器（只负责向主窗口发请求，由主窗口统一切换并广播）
+            const themeToggleBtn = pane.querySelector('#separated-toggle-theme-mode-btn');
+            if (themeToggleBtn) {
+                // 初始化按钮状态
+                const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+                themeToggleBtn.title = currentTheme === 'light' ? '切换到夜间主题' : '切换到日间主题';
+                
+                themeToggleBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    
+                    // 分离窗口不直接切换主题，只向主窗口发起请求
+                    if (window.opener && !window.opener.closed) {
+                        try {
+                            // 通过postMessage通知主窗口切换主题
+                            window.opener.postMessage({
+                                type: 'SEPARATED_VIEW_THEME_TOGGLE',
+                                timestamp: Date.now()
+                            }, window.location.origin);
+                        } catch (err) {
+                            console.warn('[分离窗口] 通知主窗口切换主题失败:', err);
+                        }
+                    }
+                });
+            }
+        }
+        
+        async function loadViewContent() {
+            if (!state.originalPath) {
+                console.warn('[分离窗口] 原始路径为空，无法加载内容');
+                return;
+            }
+            
+            console.log('[分离窗口] 开始加载视图内容，originalPath:', state.originalPath);
+            
+            // 确保视图配置已加载到state（用于文件路径计算）
+            // 优先使用快照中保存的所有视图配置
+            if (!state.views || state.views.length === 0) {
+                if (currentSnapshot.globalState && currentSnapshot.globalState.allViews && currentSnapshot.globalState.allViews.length > 0) {
+                    // 使用快照中保存的所有视图配置
+                    state.views = currentSnapshot.globalState.allViews;
+                } else {
+                    // 如果快照中没有，尝试从服务器加载
+                    try {
+                        const { getViewsConfig } = await import('./js/core/api.js');
+                        const data = await getViewsConfig();
+                        if (data && Array.isArray(data.views) && data.views.length > 0) {
+                            state.views = data.views;
+                        } else {
+                            // 如果服务器也没有，使用快照中的单个视图配置
+                            state.views = [currentSnapshot.viewConfig];
+                        }
+                    } catch (e) {
+                        console.warn('[分离窗口] 从服务器加载视图配置失败，使用快照配置:', e);
+                        // 如果加载失败，使用快照中的视图配置
+                        state.views = [currentSnapshot.viewConfig];
+                    }
+                }
+                
+                // 更新viewsMap
+                const { updateViewsMap } = await import('./js/core/state.js');
+                updateViewsMap();
+            }
+            
+            // 获取当前视图配置
+            const { getViewById } = await import('./js/core/state.js');
+            const view = getViewById(viewId);
+            if (!view) {
+                console.error('[分离窗口] 视图配置不存在:', viewId);
+                return;
+            }
+            
+            // 计算当前视图的文件路径（与 loadFileViews 中的逻辑一致）
+            const lastSeparatorIndex = Math.max(state.originalPath.lastIndexOf('\\'), state.originalPath.lastIndexOf('/'));
+            const dir = lastSeparatorIndex >= 0 ? state.originalPath.substring(0, lastSeparatorIndex + 1) : '';
+            const fileName = lastSeparatorIndex >= 0 ? state.originalPath.substring(lastSeparatorIndex + 1) : state.originalPath;
+            const lastDotIndex = fileName.lastIndexOf('.');
+            const baseName = lastDotIndex > 0 ? fileName.substring(0, lastDotIndex) : fileName;
+            const ext = lastDotIndex > 0 ? fileName.substring(lastDotIndex + 1).trim() : '';
+            
+            const targetFileName = `${baseName}${view.suffix || ''}${ext ? '.' + ext : ''}`;
+            
+            // 判定逻辑：只有第一个视图（suffix为空或undefined）保存在根目录，其他视图保存在文件名文件夹内
+            const hasSuffix = view.suffix !== undefined && 
+                              view.suffix !== null && 
+                              String(view.suffix).trim() !== '';
+            
+            let targetPath;
+            if (!hasSuffix) {
+                // 第一个视图（无suffix）：保存在根目录（与文件名文件夹同级）
+                targetPath = state.originalPath; // 就是原始路径本身
+            } else {
+                // 其他视图（有suffix）：保存在文件名文件夹内
+                const { getFileInFolderPath } = await import('./js/utils/fileUtils.js');
+                targetPath = getFileInFolderPath(state.originalPath, targetFileName);
+            }
+            
+            // 更新 state.panePaths（loadSingleView 依赖这个）
+            if (!state.panePaths) {
+                state.panePaths = {};
+            }
+            state.panePaths[viewId] = targetPath;
+            console.log('[分离窗口] 计算的文件路径:', targetPath);
+            
+            // 只加载当前分离的视图，而不是所有视图
+            // 使用loadSingleView来加载单个视图
+            const { loadSingleView } = await import('./js/modules/viewManager.js');
+            await loadSingleView(viewId);
+            
+            // 更新浏览器标题栏（loadSingleView 会更新页面标题，这里同步更新浏览器标题栏）
+            updateBrowserTitle();
+            
+            // 重新设置标题观察器（确保后续标题变化也能同步到浏览器标题栏）
+            setupTitleObserver();
+            
+            // 为分离窗口绑定跳转链接（loadSingleView 内部会调用 attachJumpLinkListeners，但我们需要用分离窗口版本覆盖）
+            // 延迟执行，确保 loadSingleView 中的 attachJumpLinkListeners 已经执行完成
+            setTimeout(() => {
+                const viewEl = document.getElementById(`view-${viewId}`);
+                if (viewEl) {
+                    attachJumpLinkListenersForSeparatedView(viewEl);
+                }
+            }, 100);
+            
+            // 恢复滚动位置
+            const viewEl = document.getElementById(`view-${viewId}`);
+            if (viewEl && currentSnapshot.uiState.scrollPosition) {
+                setTimeout(() => {
+                    viewEl.scrollTop = currentSnapshot.uiState.scrollPosition;
+                }, 100);
+            }
+        }
+        
+        /**
+         * 使用快照中的内容直接渲染（首次分离时使用）
+         */
+        async function renderSnapshotContent() {
+            const viewEl = document.getElementById(`view-${viewId}`);
+            if (!viewEl) {
+                console.error('[分离窗口] 视图元素不存在:', viewId);
+                return;
+            }
+            
+            // 优先使用快照中的内容，如果没有则使用恢复状态中的内容
+            let rawContent = currentSnapshot.fileState?.rawContent || '';
+            if (!rawContent || rawContent.trim() === '') {
+                rawContent = state.rawContents?.[viewId] || '';
+            }
+            
+            const filePath = currentSnapshot.fileState?.filePath || state.panePaths?.[viewId] || null;
+            
+            console.log('[分离窗口] 渲染内容:', {
+                rawContentLength: rawContent.length,
+                filePath: filePath,
+                hasContent: rawContent.trim() !== ''
+            });
+            
+            // 更新标题（从快照中的文件路径计算）
+            if (filePath && state.originalPath) {
+                const lastSeparatorIndex = Math.max(state.originalPath.lastIndexOf('\\'), state.originalPath.lastIndexOf('/'));
+                const fileName = lastSeparatorIndex >= 0 ? state.originalPath.substring(lastSeparatorIndex + 1) : state.originalPath;
+                const lastDotIndex = fileName.lastIndexOf('.');
+                const baseName = lastDotIndex > 0 ? fileName.substring(0, lastDotIndex) : fileName;
+                const view = currentSnapshot.viewConfig;
+                const viewSuffix = (view.suffix !== undefined && view.suffix !== null && String(view.suffix).trim() !== '') ? view.suffix : '';
+                const displayFileName = baseName + viewSuffix;
+                
+                const titleEl = document.getElementById(`title-${viewId}`);
+                if (titleEl) {
+                    titleEl.textContent = view.titleTemplate.replace('{filename}', displayFileName);
+                    // 同步更新浏览器标题栏
+                    updateBrowserTitle();
+                }
+            }
+            
+            // 更新状态显示
+            const statusEl = document.getElementById(`view-status-${viewId}`);
+            if (statusEl) {
+                const isAiFile = currentSnapshot.fileState.isAiFile || false;
+                statusEl.textContent = `当前是：${isAiFile ? 'AI视图' : '主视图'}`;
+            }
+            
+            // 渲染内容
+            if (rawContent && rawContent.trim() !== '') {
+                const { processContent } = await import('./js/utils/markdownConverter.js');
+                const html = processContent(marked.parse(rawContent));
+                viewEl.innerHTML = DOMPurify.sanitize(html);
+                
+                // 增强表格和跳转链接
+                if (window.enhanceTables) window.enhanceTables();
+                // 为分离窗口绑定跳转链接（需要通知主窗口）
+                attachJumpLinkListenersForSeparatedView(viewEl);
+            } else {
+                viewEl.innerHTML = `<div style="color:var(--text-muted); padding:20px; font-style:italic; font-size:13px;">文件未找到 (Ctrl+V创建)</div>`;
+            }
+            
+            // 恢复滚动位置
+            if (currentSnapshot.uiState.scrollPosition) {
+                setTimeout(() => {
+                    viewEl.scrollTop = currentSnapshot.uiState.scrollPosition;
+                }, 100);
+            }
+            
+            // 恢复编辑模式状态
+            const { updateEditModeStatus } = await import('./js/modules/viewManager.js');
+            updateEditModeStatus(viewId);
+        }
+        
+        function updatePathDisplay() {
+            const pathDisplay = document.getElementById('current-path-display');
+            const dirPath = document.getElementById('dir-path');
+            if (state.originalPath) {
+                const displayText = state.originalPath.split(/[/\\]/).pop();
+                if (pathDisplay) pathDisplay.textContent = displayText;
+                if (dirPath) dirPath.value = state.originalPath;
+            }
+        }
+        
+        /**
+         * 为分离窗口绑定跳转链接（点击时通知主窗口）
+         */
+        function attachJumpLinkListenersForSeparatedView(container) {
+            const jumpLinks = container.querySelectorAll('.jump-link');
+            jumpLinks.forEach(link => {
+                // 移除之前的事件监听器（如果有）
+                link.removeEventListener('click', handleJumpLinkClick);
+                // 添加新的事件监听器
+                link.addEventListener('click', handleJumpLinkClick);
+            });
+        }
+        
+        /**
+         * 处理分离窗口中的跳转链接点击
+         */
+        async function handleJumpLinkClick(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const jumpTarget = this.getAttribute('data-jump');
+            if (!jumpTarget) {
+                console.warn('[分离窗口] 跳转链接没有 data-jump 属性');
+                return;
+            }
+            
+            console.log(`[分离窗口] 点击跳转链接: ${jumpTarget}，直接调用主窗口函数`);
+            
+            // 直接调用主窗口的 selectFileByPath 函数，减少延迟
+            if (window.opener && !window.opener.closed) {
+                try {
+                    // 直接调用主窗口的函数
+                    if (window.opener.selectFileByPath) {
+                        await window.opener.selectFileByPath(jumpTarget);
+                        console.log('[分离窗口] 主窗口跳转完成，开始更新分离窗口内容');
+                        
+                        // 等待主窗口文件加载完成
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                        
+                        // 从主窗口获取最新的状态
+                        if (window.opener.state) {
+                            const mainState = window.opener.state;
+                            
+                            // 更新原始路径
+                            if (mainState.originalPath) {
+                                state.originalPath = mainState.originalPath;
+                            }
+                            
+                            // 更新当前目录
+                            if (mainState.currentDir) {
+                                state.currentDir = mainState.currentDir;
+                            }
+                            
+                            // 更新视图配置（确保文件路径计算正确）
+                            if (mainState.views && Array.isArray(mainState.views) && mainState.views.length > 0) {
+                                state.views = mainState.views;
+                                const { updateViewsMap } = await import('./js/core/state.js');
+                                updateViewsMap();
+                            }
+                            
+                            // 更新路径显示
+                            updatePathDisplay();
+                            
+                            // 重新加载分离窗口的内容
+                            await loadViewContent();
+                            console.log('[分离窗口] 内容已更新');
+                        }
+                    } else {
+                        console.warn('[分离窗口] 主窗口的 selectFileByPath 函数不存在');
+                    }
+                } catch (err) {
+                    console.error('[分离窗口] 调用主窗口函数失败:', err);
+                }
+            } else {
+                console.warn('[分离窗口] 主窗口不存在或已关闭');
+            }
+        }
+        
+        // 键盘事件处理函数（避免重复绑定）
+        let keyboardHandler = null;
+        
+        /**
+         * 初始化键盘快捷键（w、s键转发到主窗口）
+         */
+        function initKeyboardShortcuts() {
+            // 如果已经绑定过，先移除旧的事件监听器
+            if (keyboardHandler) {
+                document.removeEventListener('keydown', keyboardHandler);
+            }
+            
+            // 创建新的事件处理函数
+            keyboardHandler = (e) => {
+                // 检查是否在输入框中
+                const isInInput = e.target.tagName === 'INPUT' || 
+                                  e.target.tagName === 'TEXTAREA' || 
+                                  e.target.isContentEditable;
+                
+                if (isInInput) {
+                    return; // 在输入框中，不处理快捷键
+                }
+                
+                // 获取主窗口的快捷键配置
+                const wKey = state.keybinds && state.keybinds.w ? state.keybinds.w.toLowerCase() : 'w';
+                const sKey = state.keybinds && state.keybinds.s ? state.keybinds.s.toLowerCase() : 's';
+                
+                const key = e.key.toLowerCase();
+                
+                // 如果按下的是 w、s、q 或 e 键，转发到主窗口
+                if (key === wKey || key === sKey || key === 'q' || key === 'e') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    console.log(`[分离窗口] 检测到 ${key} 键，转发到主窗口`);
+                    
+                    // 通过 postMessage 通知主窗口
+                    if (window.opener && !window.opener.closed) {
+                        try {
+                            window.opener.postMessage({
+                                type: 'SEPARATED_VIEW_KEYDOWN',
+                                key: key,
+                                originalKey: e.key,
+                                timestamp: Date.now()
+                            }, window.location.origin);
+                        } catch (err) {
+                            console.warn('[分离窗口] 发送键盘事件到主窗口失败:', err);
+                        }
+                    }
+                }
+            };
+            
+            // 绑定事件监听器
+            document.addEventListener('keydown', keyboardHandler);
+        }
+        
+        // 初始化：尝试从sessionStorage加载
+        if (snapshotKey) {
+            const serializedSnapshot = sessionStorage.getItem(snapshotKey);
+            if (serializedSnapshot) {
+                sessionStorage.removeItem(snapshotKey);
+                initSeparatedView(serializedSnapshot);
+            } else {
+                // 等待postMessage
+                document.getElementById('viewer-grid').innerHTML = 
+                    '<div style="padding: 20px; color: var(--text-muted);">正在加载分离视图...</div>';
+            }
+        } else {
+            document.getElementById('viewer-grid').innerHTML = 
+                '<div style="padding: 20px; color: red;">错误：未找到快照数据</div>';
+        }
+    </script>
+</body>
+</html>
+

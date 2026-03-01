@@ -1,0 +1,110 @@
+<div class="main-layout">
+    <!-- 左侧：分区式侧边栏 -->
+    <div class="sidebar layout-sidebar">
+        <!-- 顶部 Logo / 标题区 -->
+        <div class="sidebar-header" style="padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
+            <div style="font-weight: 700; letter-spacing: 0.08em;">
+                INDEX
+            </div>
+            <button id="btn-up" title="返回上一级目录" style="cursor: pointer; border: none; background: transparent; color: inherit;">
+                ⬆
+            </button>
+        </div>
+
+        <!-- 快速过滤 / 标签区（仅做布局占位，逻辑由系统决定是否使用） -->
+        <div class="sidebar-section sidebar-filters" style="padding: 6px 12px; border-top: 1px solid var(--border-subtle);">
+            <div class="sidebar-filter-pills" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <span class="pill pill-all" data-filter="all">全部</span>
+                <span class="pill pill-md" data-filter="markdown">文档</span>
+                <span class="pill pill-log" data-filter="log">日志</span>
+                <span class="pill pill-todo" data-filter="todo">任务</span>
+            </div>
+        </div>
+
+        <!-- 中部：真正的文件列表容器（必须保留 #file-list） -->
+        <div class="sidebar-section sidebar-files" style="flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column;">
+            <div class="sidebar-files-header" style="padding: 4px 12px; font-size: 12px; opacity: 0.8;">
+                文件列表
+            </div>
+            <ul id="file-list" style="flex: 1 1 auto; min-height: 0; overflow-y: auto; margin: 0; padding: 4px 0 8px 0;">
+                <!-- 文件列表项将由系统动态生成 -->
+            </ul>
+        </div>
+
+        <!-- 底部：状态 / 统计信息占位 -->
+        <div class="sidebar-section sidebar-footer" style="padding: 6px 12px; border-top: 1px solid var(--border-subtle); font-size: 11px; opacity: 0.7;">
+            <div class="sidebar-footer-line">
+                左侧用于“索引 / 入口”，上方是筛选，中间是真实文件列表，下方可以放统计或提示。
+            </div>
+        </div>
+    </div>
+
+    <!-- 右侧：主区域，分为顶部工具栏 + 多行视图区 -->
+    <div class="main-region" style="display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0;">
+        <!-- 顶部工具栏，占一行 -->
+        <div class="main-toolbar" style="flex: 0 0 auto;">
+            <div class="toolbar-row" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--border-subtle);">
+                <div class="toolbar-left" style="display: flex; gap: 8px; align-items: center;">
+                    <span class="toolbar-title">多视图工作区</span>
+                    <span class="toolbar-subtitle" style="font-size: 12px; opacity: 0.75;">上面一行可以放全局按钮 / 视图布局切换开关</span>
+                </div>
+                <div class="toolbar-right" style="display: flex; gap: 6px;">
+                    <button class="toolbar-btn" data-action="layout-reset">重置布局</button>
+                    <button class="toolbar-btn" data-action="layout-snapshot">保存快照</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- viewer-grid：真正的视图区容器（必须保留 id="viewer-grid"） -->
+        <div class="viewer-grid" id="viewer-grid" style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 8px 10px;">
+            <!-- 第一行：左大右双层 -->
+            <div class="viewer-row viewer-row-main" style="flex: 2 1 0; min-height: 0; display: flex; gap: 8px;">
+                <!-- 左侧：主视图（大块） -->
+                <div class="viewer-slot viewer-slot-primary" data-view-slot="primary"
+                     style="flex: 2 1 0; min-width: 0; border: 1px solid var(--border-subtle); border-radius: var(--border-radius); overflow: hidden;">
+                    <!-- 主视图内容由系统注入 -->
+                </div>
+
+                <!-- 右侧：上下两个次要视图 -->
+                <div class="viewer-column-right" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
+                    <div class="viewer-slot viewer-slot-secondary" data-view-slot="secondary-top"
+                         style="flex: 1 1 0; min-height: 0; border: 1px solid var(--border-subtle); border-radius: var(--border-radius); overflow: hidden;">
+                        <!-- 次要视图（上） -->
+                    </div>
+                    <div class="viewer-slot viewer-slot-secondary" data-view-slot="secondary-bottom"
+                         style="flex: 1 1 0; min-height: 0; border: 1px solid var(--border-subtle); border-radius: var(--border-radius); overflow: hidden;">
+                        <!-- 次要视图（下） -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 第二行：下方两块，用于“笔记 / 沙盒”等 -->
+            <div class="viewer-row viewer-row-bottom" style="flex: 1 1 0; min-height: 0; display: flex; gap: 8px;">
+                <div class="viewer-slot viewer-slot-notes" data-view-slot="notes"
+                     style="flex: 1 1 0; min-width: 0; border: 1px solid var(--border-subtle); border-radius: var(--border-radius); overflow: hidden;">
+                    <!-- 可以映射到“学习结果 / 总结”等视图 -->
+                </div>
+                <div class="viewer-slot viewer-slot-playground" data-view-slot="playground"
+                     style="flex: 1 1 0; min-width: 0; border: 1px solid var(--border-subtle); border-radius: var(--border-radius); overflow: hidden;">
+                    <!-- 可以映射到“草稿 / 实验场”等视图 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="main-layout">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <span>INDEX</span>
+            <span id="btn-up" style="cursor: pointer;" title="返回上一级目录">⬆</span>
+        </div>
+        <ul id="file-list">
+            <!-- 文件列表项将由系统动态生成 -->
+        </ul>
+    </div>
+    
+    <div class="viewer-grid" id="viewer-grid">
+        <!-- 视图容器将由系统动态生成 -->
+    </div>
+</div>

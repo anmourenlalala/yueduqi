@@ -1,0 +1,553 @@
+================================================================================
+                    外部AI调用上下文API文档
+================================================================================
+
+一、API端点说明
+================================================================================
+
+1. 获取上下文信息
+   - 端点: GET http://localhost:2333/api/views/context
+   - 方法: GET
+   - 说明: 获取当前项目所有视图的内容和全局提示词
+
+2. 获取上下文元信息
+   - 端点: GET http://localhost:2333/api/views/context/info
+   - 方法: GET
+   - 说明: 获取上下文的元数据（是否可用、长度、更新时间等）
+
+3. 发送消息到DeepSeek AI
+   - 端点: POST http://localhost:2333/api/deepseek/send
+   - 方法: POST
+   - 说明: 将内容发送到DeepSeek网页版AI（自动控制浏览器）
+
+4. 检查DeepSeek登录状态
+   - 端点: GET http://localhost:2333/api/deepseek/status
+   - 方法: GET
+   - 说明: 检查DeepSeek是否已初始化及登录状态
+
+
+二、请求方式
+================================================================================
+
+1. 获取上下文（GET请求）
+
+   Python示例:
+   ```python
+   import requests
+   
+   response = requests.get('http://localhost:2333/api/views/context')
+   if response.status_code == 200:
+       context = response.text
+       print(context)
+   else:
+       print(f"错误: {response.status_code}")
+       print(response.json())
+   ```
+
+   JavaScript示例:
+   ```javascript
+   const response = await fetch('http://localhost:2333/api/views/context');
+   if (response.ok) {
+       const context = await response.text();
+       console.log(context);
+   } else {
+       const error = await response.json();
+       console.error('错误:', error);
+   }
+   ```
+
+   curl示例:
+   ```bash
+   curl http://localhost:2333/api/views/context
+   ```
+
+2. 获取上下文元信息（GET请求）
+
+   Python示例:
+   ```python
+   import requests
+   
+   response = requests.get('http://localhost:2333/api/views/context/info')
+   if response.status_code == 200:
+       info = response.json()
+       print(f"上下文可用: {info['available']}")
+       print(f"上下文长度: {info['length']} 字符")
+       print(f"最后更新: {info['lastUpdated']}")
+   ```
+
+   JavaScript示例:
+   ```javascript
+   const response = await fetch('http://localhost:2333/api/views/context/info');
+   const info = await response.json();
+   console.log('上下文可用:', info.available);
+   console.log('上下文长度:', info.length);
+   console.log('最后更新:', info.lastUpdated);
+   ```
+
+
+三、响应格式
+================================================================================
+
+1. 成功响应（200 OK）
+   - Content-Type: text/plain; charset=utf-8
+   - 响应体: 纯文本格式的上下文内容
+   - 说明: 包含所有视图内容和全局提示词
+
+2. 错误响应（404 Not Found）
+   - Content-Type: application/json
+   - 响应体:
+     ```json
+     {
+       "error": "Context not available",
+       "message": "前端尚未发送上下文信息，请确保前端应用正在运行并已加载文件"
+     }
+     ```
+   - 说明: 当前没有可用的上下文，需要确保前端应用已运行并加载了文件
+
+3. 服务器错误（500 Internal Server Error）
+   - Content-Type: application/json
+   - 响应体:
+     ```json
+     {
+       "error": "错误信息"
+     }
+     ```
+
+
+四、上下文内容格式
+================================================================================
+
+上下文内容是一个结构化的文本，包含以下部分：
+
+1. 头部信息
+   ```
+   当前项目显示的文件内容：
+   共有 X 个视图：
+   
+   当前文件：文件名.md
+   文件路径：D:/path/to/文件名.md
+   ```
+
+2. 视图内容（每个视图一个区块）
+   ```
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   
+   【视图 1：视图ID】
+   标题：视图标题
+   当前显示：主视图 或 AI视图
+   文件路径：D:/path/to/文件路径
+   内容：
+   （视图的完整内容，最多5000字符，超出会截断）
+   
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ```
+
+3. 全局提示词（在所有视图内容之后，只出现一次）
+   ```
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   
+   全局提示词：提示词标题
+   
+   （全局提示词的完整内容）
+   ```
+
+注意：
+- 每个视图的内容最多5000字符，超出部分会被截断并显示提示
+- 全局提示词只在最后出现一次，不会在每个视图中重复
+- 如果视图内容为空，会显示"内容：空（文件未找到或为空）"
+
+
+五、完整使用示例
+================================================================================
+
+Python完整示例:
+```python
+import requests
+import json
+
+def get_context():
+    """获取上下文信息"""
+    try:
+        # 先检查上下文是否可用
+        info_response = requests.get('http://localhost:2333/api/views/context/info')
+        if info_response.status_code == 200:
+            info = info_response.json()
+            if not info['available']:
+                print("上下文不可用，请确保前端应用已运行并加载了文件")
+                return None
+            
+            print(f"上下文可用，长度: {info['length']} 字符")
+            print(f"最后更新: {info['lastUpdated']}")
+        
+        # 获取上下文内容
+        response = requests.get('http://localhost:2333/api/views/context')
+        
+        if response.status_code == 200:
+            context = response.text
+            return context
+        elif response.status_code == 404:
+            error = response.json()
+            print(f"错误: {error['error']}")
+            print(f"提示: {error['message']}")
+            return None
+        else:
+            print(f"服务器错误: {response.status_code}")
+            return None
+            
+    except requests.exceptions.ConnectionError:
+        print("无法连接到服务器，请确保服务器正在运行（端口2333）")
+        return None
+    except Exception as e:
+        print(f"发生错误: {str(e)}")
+        return None
+
+# 使用示例
+if __name__ == "__main__":
+    context = get_context()
+    if context:
+        print("=" * 80)
+        print("获取到的上下文:")
+        print("=" * 80)
+        print(context)
+        print("=" * 80)
+        
+        # 可以将上下文用于AI调用
+        # messages = [
+        #     {"role": "system", "content": "你是一个助手"},
+        #     {"role": "user", "content": f"{context}\n\n请分析这些内容"}
+        # ]
+```
+
+JavaScript完整示例:
+```javascript
+async function getContext() {
+    try {
+        // 先检查上下文是否可用
+        const infoResponse = await fetch('http://localhost:2333/api/views/context/info');
+        const info = await infoResponse.json();
+        
+        if (!info.available) {
+            console.error('上下文不可用，请确保前端应用已运行并加载了文件');
+            return null;
+        }
+        
+        console.log(`上下文可用，长度: ${info.length} 字符`);
+        console.log(`最后更新: ${info.lastUpdated}`);
+        
+        // 获取上下文内容
+        const response = await fetch('http://localhost:2333/api/views/context');
+        
+        if (response.ok) {
+            const context = await response.text();
+            return context;
+        } else if (response.status === 404) {
+            const error = await response.json();
+            console.error(`错误: ${error.error}`);
+            console.error(`提示: ${error.message}`);
+            return null;
+        } else {
+            console.error(`服务器错误: ${response.status}`);
+            return null;
+        }
+    } catch (error) {
+        if (error.message.includes('fetch')) {
+            console.error('无法连接到服务器，请确保服务器正在运行（端口2333）');
+        } else {
+            console.error(`发生错误: ${error.message}`);
+        }
+        return null;
+    }
+}
+
+// 使用示例
+(async () => {
+    const context = await getContext();
+    if (context) {
+        console.log('='.repeat(80));
+        console.log('获取到的上下文:');
+        console.log('='.repeat(80));
+        console.log(context);
+        console.log('='.repeat(80));
+        
+        // 可以将上下文用于AI调用
+        // const messages = [
+        //     { role: "system", content: "你是一个助手" },
+        //     { role: "user", content: `${context}\n\n请分析这些内容` }
+        // ];
+    }
+})();
+```
+
+
+六、与AI服务集成示例
+================================================================================
+
+1. 与OpenAI API集成（Python）
+```python
+import requests
+import openai
+
+# 获取上下文
+context_response = requests.get('http://localhost:2333/api/views/context')
+if context_response.status_code == 200:
+    context = context_response.text
+    
+    # 调用OpenAI
+    openai.api_key = "your-api-key"
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "你是一个专业的数据分析师"},
+            {"role": "user", "content": f"{context}\n\n请分析这些内容并给出建议"}
+        ]
+    )
+    
+    print(response.choices[0].message.content)
+```
+
+2. 与OpenAI API集成（JavaScript）
+```javascript
+import OpenAI from 'openai';
+
+const openai = new OpenAI({ apiKey: 'your-api-key' });
+
+async function analyzeContext() {
+    // 获取上下文
+    const contextResponse = await fetch('http://localhost:2333/api/views/context');
+    if (contextResponse.ok) {
+        const context = await contextResponse.text();
+        
+        // 调用OpenAI
+        const completion = await openai.chat.completions.create({
+            model: "gpt-3.5-turbo",
+            messages: [
+                { role: "system", content: "你是一个专业的数据分析师" },
+                { role: "user", content: `${context}\n\n请分析这些内容并给出建议` }
+            ]
+        });
+        
+        console.log(completion.choices[0].message.content);
+    }
+}
+```
+
+3. 与其他AI服务集成
+```python
+import requests
+
+# 获取上下文
+context_response = requests.get('http://localhost:2333/api/views/context')
+if context_response.status_code == 200:
+    context = context_response.text
+    
+    # 调用其他AI服务（示例：Claude API）
+    api_key = "your-api-key"
+    headers = {
+        "x-api-key": api_key,
+        "content-type": "application/json"
+    }
+    
+    data = {
+        "model": "claude-3-opus-20240229",
+        "messages": [
+            {"role": "user", "content": f"{context}\n\n请分析这些内容"}
+        ]
+    }
+    
+    response = requests.post(
+        "https://api.anthropic.com/v1/messages",
+        headers=headers,
+        json=data
+    )
+    
+    result = response.json()
+    print(result['content'][0]['text'])
+```
+
+
+七、服务器日志说明
+================================================================================
+
+当外部AI调用API时，服务器控制台会打印以下信息：
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[Context API] 外部AI请求获取上下文
+  时间: 2024/1/15 14:30:25
+  调用者IP: 127.0.0.1
+  调用者端口: 54321
+  视图ID+文件名: original: example.md, analysis: example_analysis.md
+  全局提示词: 分析师
+  上下文长度: 8234 字符
+  上下文最后更新时间: 2024-01-15T14:30:20.123Z
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+这些日志可以帮助你：
+- 追踪谁在调用API
+- 了解当前有哪些视图和文件
+- 查看上下文的大小和更新时间
+
+
+八、注意事项
+================================================================================
+
+1. 服务器要求
+   - 确保服务器正在运行（默认端口2333）
+   - 确保前端应用已打开并加载了文件
+   - 上下文会在文件加载或视图更新时自动同步
+
+2. 上下文可用性
+   - 如果前端没有打开文件，上下文将不可用
+   - 建议在调用前先检查 /api/views/context/info 端点
+   - 上下文会在文件加载后自动更新
+
+3. 内容长度限制
+   - 每个视图的内容最多5000字符，超出会截断
+   - 如果内容被截断，会显示提示信息
+   - 总上下文长度没有硬性限制，但建议注意性能
+
+4. 错误处理
+   - 始终检查HTTP状态码
+   - 404错误表示上下文不可用，需要等待前端加载文件
+   - 500错误表示服务器内部错误，检查服务器日志
+
+5. 性能考虑
+   - 上下文可能很大，注意网络传输时间
+   - 建议缓存上下文，避免频繁请求
+   - 如果上下文很大，考虑分批处理
+
+6. 安全性
+   - 当前API没有身份验证，仅限本地使用
+   - 如果需要在网络上暴露，请添加适当的认证机制
+   - 注意不要在生产环境中暴露敏感信息
+
+
+九、常见问题
+================================================================================
+
+Q1: 为什么返回404错误？
+A1: 这表示前端还没有发送上下文信息。请确保：
+    - 前端应用正在运行
+    - 已经打开并加载了文件
+    - 等待几秒钟让上下文同步完成
+
+Q2: 上下文内容不完整怎么办？
+A2: 每个视图的内容最多5000字符。如果内容被截断：
+    - 检查原始文件是否确实很长
+    - 考虑直接读取文件而不是通过API
+
+Q3: 如何知道上下文何时更新？
+A3: 可以定期调用 /api/views/context/info 端点检查 lastUpdated 时间戳
+
+Q4: 可以同时有多个客户端调用吗？
+A4: 可以，API是无状态的，多个客户端可以同时调用
+
+Q5: 上下文包含哪些信息？
+A5: 包含：
+    - 所有视图的内容（每个视图最多5000字符）
+    - 全局提示词的完整内容（只在最后出现一次）
+    - 文件路径和视图信息
+
+
+十、更新日志
+================================================================================
+
+2024-01-15:
+- 初始版本发布
+- 支持获取所有视图内容和全局提示词
+- 添加了详细的日志记录
+- 支持元信息查询端点
+
+
+十一、DeepSeek AI集成API
+================================================================================
+
+1. 发送消息到DeepSeek（POST请求）
+
+   Python示例:
+   ```python
+   import requests
+   
+   response = requests.post(
+       'http://localhost:2333/api/deepseek/send',
+       json={'prompt': '请分析这段内容...'}
+   )
+   if response.status_code == 200:
+       result = response.json()
+       print(result['message'])  # "消息已发送"
+   else:
+       error = response.json()
+       print(f"错误: {error['error']}")
+   ```
+
+   JavaScript示例:
+   ```javascript
+   const response = await fetch('http://localhost:2333/api/deepseek/send', {
+       method: 'POST',
+       headers: {
+           'Content-Type': 'application/json',
+       },
+       body: JSON.stringify({ prompt: '请分析这段内容...' })
+   });
+   
+   if (response.ok) {
+       const result = await response.json();
+       console.log(result.message);  // "消息已发送"
+   } else {
+       const error = await response.json();
+       console.error('错误:', error.error);
+   }
+   ```
+
+2. 检查DeepSeek状态（GET请求）
+
+   Python示例:
+   ```python
+   import requests
+   
+   response = requests.get('http://localhost:2333/api/deepseek/status')
+   if response.status_code == 200:
+       status = response.json()
+       print(f"已初始化: {status['initialized']}")
+       print(f"已登录: {status['loggedIn']}")
+       print(f"最后检查: {status['lastCheck']}")
+   ```
+
+   JavaScript示例:
+   ```javascript
+   const response = await fetch('http://localhost:2333/api/deepseek/status');
+   const status = await response.json();
+   console.log('已初始化:', status.initialized);
+   console.log('已登录:', status.loggedIn);
+   console.log('最后检查:', status.lastCheck);
+   ```
+
+3. DeepSeek功能说明
+
+   - 首次使用：启动阅读器后，DeepSeek浏览器窗口会自动打开，需要手动登录一次
+   - 登录状态：登录状态会自动保存，下次启动无需重新登录
+   - 发送内容：支持发送任意文本内容到DeepSeek AI
+   - 自动化：使用Puppeteer自动控制浏览器，无需手动操作
+   - 集成方式：功能集成在2333端口，无需额外启动服务
+
+4. 前端快捷键
+
+   - 快捷键 M：发送所有视图内容到DeepSeek（包含全局提示词和所有视图）
+   - 快捷键 N：发送单个视图内容到DeepSeek（从导航栏获取视图ID，包含视图提示词）
+   - 视图按钮：每个视图标题栏右侧有🚀按钮，可快速发送该视图到DeepSeek
+
+
+十二、技术支持
+================================================================================
+
+如有问题或建议，请查看：
+- 服务器日志（控制台输出）
+- 前端控制台日志
+- 项目文档
+
+
+================================================================================
+                            文档结束
+================================================================================
+

@@ -1,0 +1,338 @@
+/**
+ * 设计系统基础
+ * Design System Foundation
+ * 
+ * 建立完整的设计令牌系统，确保整个应用的视觉一致性
+ */
+
+:root {
+    /* ==================== 间距系统 (8px基础网格) ==================== */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
+    --space-16: 64px;
+    --space-20: 80px;
+    
+    /* ==================== 盒子内外边距系统（可在主题中自定义） ==================== */
+    /* 外边距（margin） */
+    --box-margin-top: 0px;
+    --box-margin-right: 0px;
+    --box-margin-bottom: 0px;
+    --box-margin-left: 0px;
+    --box-margin: var(--box-margin-top) var(--box-margin-right) var(--box-margin-bottom) var(--box-margin-left);
+    
+    /* 内边距（padding） */
+    --box-padding-top: 0px;
+    --box-padding-right: 0px;
+    --box-padding-bottom: 0px;
+    --box-padding-left: 0px;
+    --box-padding: var(--box-padding-top) var(--box-padding-right) var(--box-padding-bottom) var(--box-padding-left);
+    
+    /* 边框（border） */
+    --box-border-width: 0px;
+    --box-border-style: solid;
+    --box-border-color: transparent;
+    --box-border: var(--box-border-width) var(--box-border-style) var(--box-border-color);
+    --box-border-top: var(--box-border-width) var(--box-border-style) var(--box-border-color);
+    --box-border-right: var(--box-border-width) var(--box-border-style) var(--box-border-color);
+    --box-border-bottom: var(--box-border-width) var(--box-border-style) var(--box-border-color);
+    --box-border-left: var(--box-border-width) var(--box-border-style) var(--box-border-color);
+
+    /* ==================== 圆角系统 ==================== */
+    --radius-xs: 4px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-2xl: 24px;
+    --radius-full: 9999px;
+
+    /* ==================== 阴影系统 (营造深度感) ==================== */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.12);
+    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.16);
+    --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.20);
+    --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+    --shadow-colored: 0 8px 24px rgba(77, 158, 255, 0.15);
+
+    /* ==================== 过渡动画系统 ==================== */
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: 400ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    /* ==================== 字体大小系统（使用rem相对单位） ==================== */
+    --text-xs: 0.6875rem;    /* 11px / 16 */
+    --text-sm: 0.8125rem;    /* 13px / 16 */
+    --text-base: 0.9375rem;  /* 15px / 16 */
+    --text-lg: 1.0625rem;    /* 17px / 16 */
+    --text-xl: 1.25rem;      /* 20px / 16 */
+    --text-2xl: 1.5rem;      /* 24px / 16 */
+    --text-3xl: 1.875rem;    /* 30px / 16 */
+    --text-4xl: 2.25rem;     /* 36px / 16 */
+
+    /* ==================== 字体权重 ==================== */
+    --font-normal: 400;
+    --font-medium: 500;
+    --font-semibold: 600;
+    --font-bold: 700;
+
+    /* ==================== 行高系统 ==================== */
+    --leading-tight: 1.25;
+    --leading-normal: 1.5;
+    --leading-relaxed: 1.75;
+    --leading-loose: 2;
+
+    /* ==================== Z-index层级系统 ==================== */
+    --z-base: 1;
+    --z-dropdown: 100;
+    --z-sticky: 200;
+    --z-fixed: 300;
+    --z-modal-backdrop: 1000;
+    --z-modal: 10000;
+    --z-popover: 1200;
+    --z-tooltip: 1300;
+}
+
+/* ==================== 深色主题色彩系统 ==================== */
+:root {
+    /* 基础背景色 - 从深到浅的层次 */
+    --bg-0: #0a0e1a;        /* 最深层背景 */
+    --bg-1: #0f1626;        /* 主背景 */
+    --bg-2: #1a2235;        /* 次要背景 */
+    --bg-3: #252f47;        /* 三级背景 */
+    --bg-4: #2f3b58;        /* 四级背景 */
+    
+    /* 表面颜色 - 用于卡片、面板等 */
+    --surface-0: #1a2235;
+    --surface-1: #252f47;
+    --surface-2: #2f3b58;
+    --surface-3: #394869;
+    
+    /* 边框颜色 */
+    --border-subtle: rgba(255, 255, 255, 0.05);
+    --border-base: rgba(255, 255, 255, 0.1);
+    --border-strong: rgba(255, 255, 255, 0.15);
+    --border-emphasis: rgba(255, 255, 255, 0.2);
+    
+    /* 文字颜色 - 从浅到深的层次 */
+    --text-0: #ffffff;      /* 最重要文字 */
+    --text-1: #e8edf7;      /* 主要文字 */
+    --text-2: #c4cee0;      /* 次要文字 */
+    --text-3: #9ba8c2;      /* 辅助文字 */
+    --text-4: #7281a3;      /* 禁用文字 */
+    
+    /* 主色调 - 蓝色系 */
+    --primary-50: #0d1b2e;
+    --primary-100: #1e3a5f;
+    --primary-200: #2d5a8f;
+    --primary-300: #3d7abf;
+    --primary-400: #4d9eff;
+    --primary-500: #5db8ff;
+    --primary-600: #6dc8ff;
+    --primary-700: #7dd8ff;
+    --primary-800: #8de8ff;
+    --primary-900: #9df8ff;
+    
+    /* 强调色 - 紫色系 */
+    --accent-50: #1a1433;
+    --accent-100: #2d2866;
+    --accent-200: #403c99;
+    --accent-300: #5350cc;
+    --accent-400: #6664ff;
+    --accent-500: #7a6dff;
+    --accent-600: #8d7aff;
+    --accent-700: #a087ff;
+    --accent-800: #b394ff;
+    --accent-900: #c6a1ff;
+    
+    /* 状态颜色 */
+    --success: #4ade80;
+    --success-bg: rgba(74, 222, 128, 0.1);
+    --warning: #fbbf24;
+    --warning-bg: rgba(251, 191, 36, 0.1);
+    --error: #f87171;
+    --error-bg: rgba(248, 113, 113, 0.1);
+    --info: #60a5fa;
+    --info-bg: rgba(96, 165, 250, 0.1);
+    
+    /* 覆盖旧变量以保持兼容 */
+    --bg-primary: var(--bg-1);
+    --bg-secondary: var(--bg-2);
+    --bg-tertiary: var(--bg-3);
+    --bg-body: var(--bg-0);
+    --bg-pane: var(--surface-0);
+    
+    --text-primary: var(--text-1);
+    --text-secondary: var(--text-2);
+    --text-muted: var(--text-3);
+    
+    --accent-blue: var(--primary-400);
+    --accent-purple: var(--accent-500);
+    --accent-cyan: #52d1e0;
+    
+    --border: var(--border-base);
+    --border-light: var(--border-subtle);
+    
+    --accent-bg: rgba(77, 158, 255, 0.08);
+    
+    /* 反色变量 - 用于彩色背景上的文字 */
+    --inverse-text: #ffffff; /* 夜间：白色 */
+    
+    /* 盒子内外边距（默认值） */
+    --box-margin-top: 0px;
+    --box-margin-right: 0px;
+    --box-margin-bottom: 0px;
+    --box-margin-left: 0px;
+    --box-margin: var(--box-margin-top) var(--box-margin-right) var(--box-margin-bottom) var(--box-margin-left);
+    --box-padding-top: 0px;
+    --box-padding-right: 0px;
+    --box-padding-bottom: 0px;
+    --box-padding-left: 0px;
+    --box-padding: var(--box-padding-top) var(--box-padding-right) var(--box-padding-bottom) var(--box-padding-left);
+}
+
+/* ==================== 浅色主题色彩系统 ==================== */
+[data-theme="light"] {
+    /* 基础背景色 */
+    --bg-0: #fafbfc;
+    --bg-1: #ffffff;
+    --bg-2: #f5f7fa;
+    --bg-3: #eef2f7;
+    --bg-4: #e5eaf0;
+    
+    /* 表面颜色 */
+    --surface-0: #ffffff;
+    --surface-1: #f5f7fa;
+    --surface-2: #eef2f7;
+    --surface-3: #e5eaf0;
+    
+    /* 边框颜色 */
+    --border-subtle: rgba(0, 0, 0, 0.06);
+    --border-base: rgba(0, 0, 0, 0.1);
+    --border-strong: rgba(0, 0, 0, 0.15);
+    --border-emphasis: rgba(0, 0, 0, 0.2);
+    
+    /* 文字颜色 */
+    --text-0: #0a0e1a;
+    --text-1: #1a2235;
+    --text-2: #394869;
+    --text-3: #5a6d8f;
+    --text-4: #8a95b5;
+    
+    /* 主色调 - 蓝色系 */
+    --primary-50: #e6f2ff;
+    --primary-100: #cce5ff;
+    --primary-200: #99cbff;
+    --primary-300: #66b1ff;
+    --primary-400: #3d8aff;
+    --primary-500: #1a6aff;
+    --primary-600: #0052d9;
+    --primary-700: #003fa6;
+    --primary-800: #002c73;
+    --primary-900: #001940;
+    
+    /* 强调色 - 紫色系 */
+    --accent-50: #f5f3ff;
+    --accent-100: #e9e7ff;
+    --accent-200: #d3cfff;
+    --accent-300: #bdb7ff;
+    --accent-400: #a79fff;
+    --accent-500: #7a5dff;
+    --accent-600: #5d3fff;
+    --accent-700: #4021ff;
+    --accent-800: #2303ff;
+    --accent-900: #0d00b8;
+    
+    /* 状态颜色 */
+    --success: #22c55e;
+    --success-bg: rgba(34, 197, 94, 0.1);
+    --warning: #eab308;
+    --warning-bg: rgba(234, 179, 8, 0.1);
+    --error: #ef4444;
+    --error-bg: rgba(239, 68, 68, 0.1);
+    --info: #3b82f6;
+    --info-bg: rgba(59, 130, 246, 0.1);
+    
+    /* 覆盖旧变量 */
+    --bg-primary: var(--bg-2);
+    --bg-secondary: var(--bg-1);
+    --bg-tertiary: var(--bg-3);
+    --bg-body: var(--bg-0);
+    --bg-pane: var(--surface-0);
+    
+    --text-primary: var(--text-1);
+    --text-secondary: var(--text-2);
+    --text-muted: var(--text-3);
+    
+    --accent-blue: var(--primary-500);
+    --accent-purple: var(--accent-500);
+    
+    --border: var(--border-base);
+    --border-light: var(--border-subtle);
+    
+    --accent-bg: rgba(26, 106, 255, 0.08);
+    
+    /* 反色变量 - 用于彩色背景上的文字 */
+    --inverse-text: #ffffff; /* 日间：白色 */
+    
+    /* 盒子内外边距（默认值） */
+    --box-margin-top: 0px;
+    --box-margin-right: 0px;
+    --box-margin-bottom: 0px;
+    --box-margin-left: 0px;
+    --box-margin: var(--box-margin-top) var(--box-margin-right) var(--box-margin-bottom) var(--box-margin-left);
+    --box-padding-top: 0px;
+    --box-padding-right: 0px;
+    --box-padding-bottom: 0px;
+    --box-padding-left: 0px;
+    --box-padding: var(--box-padding-top) var(--box-padding-right) var(--box-padding-bottom) var(--box-padding-left);
+}
+
+/* ==================== 工具类 ==================== */
+
+/* 间距工具类 */
+.mt-1 { margin-top: var(--space-1); }
+.mt-2 { margin-top: var(--space-2); }
+.mt-3 { margin-top: var(--space-3); }
+.mt-4 { margin-top: var(--space-4); }
+.mt-6 { margin-top: var(--space-6); }
+.mb-1 { margin-bottom: var(--space-1); }
+.mb-2 { margin-bottom: var(--space-2); }
+.mb-3 { margin-bottom: var(--space-3); }
+.mb-4 { margin-bottom: var(--space-4); }
+.mb-6 { margin-bottom: var(--space-6); }
+.p-2 { padding: var(--space-2); }
+.p-3 { padding: var(--space-3); }
+.p-4 { padding: var(--space-4); }
+.p-6 { padding: var(--space-6); }
+.p-8 { padding: var(--space-8); }
+
+/* 文本工具类 */
+.text-xs { font-size: var(--text-xs); }
+.text-sm { font-size: var(--text-sm); }
+.text-base { font-size: var(--text-base); }
+.text-lg { font-size: var(--text-lg); }
+.text-xl { font-size: var(--text-xl); }
+
+.font-normal { font-weight: var(--font-normal); }
+.font-medium { font-weight: var(--font-medium); }
+.font-semibold { font-weight: var(--font-semibold); }
+.font-bold { font-weight: var(--font-bold); }
+
+/* 圆角工具类 */
+.rounded-sm { border-radius: var(--radius-sm); }
+.rounded-md { border-radius: var(--radius-md); }
+.rounded-lg { border-radius: var(--radius-lg); }
+.rounded-xl { border-radius: var(--radius-xl); }
+.rounded-full { border-radius: var(--radius-full); }
+
+
+

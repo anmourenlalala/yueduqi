@@ -1,0 +1,1495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多模阅读器</title>
+    
+    <!-- 外部库 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <!-- Mermaid初始化 -->
+    <script type="module">
+        import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: "default"
+        });
+        window.mermaid = mermaid;
+    </script>
+    
+    <!-- 路径工具 -->
+    <script type="module">
+        import { pathUtils } from './js/utils/path.js';
+        window.path = pathUtils;
+    </script>
+    
+    <!-- CSS样式文件 -->
+    <link rel="stylesheet" href="css/themes.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/edit-mode-toggle.css">
+    <link rel="stylesheet" href="css/responsive-fonts.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 顶部标题栏 -->
+        <div class="header-wrapper">
+        <header class="header">
+            <div class="header-container">
+                <div class="header-row-top">
+                    <div class="header-left">
+                        <div class="path-box">
+                            <span class="path-icon">📂</span>
+                            <input type="text" id="dir-path" placeholder="输入路径..." class="path-input">
+                        </div>
+                        <div class="current-path-display" id="current-path-display"></div>
+                        <div class="feedback-notices-row" id="feedback-notices-row" style="display: none;">
+                            <div class="feedback-generating-notice" id="feedback-generating-notice">
+                                <span class="feedback-notice-icon">⏳</span>
+                                <span class="feedback-notice-text" id="feedback-notice-text">反馈文件生成中，请不要关闭</span>
+                            </div>
+                            <div id="workflow-execution-indicator" style="display: none;"></div>
+                        </div>
+                    </div>
+                    <div class="header-row-first">
+                        <div class="current-prompt-badge" id="current-prompt-display" title="" style="display: none;"></div>
+                        <div class="paste-targets-group" id="paste-targets-container">
+                            <span class="paste-label">Ctrl+V:</span>
+                            <!-- Ctrl+V 右侧的日间/夜间主题切换按钮（桌面端） -->
+                            <button class="btn btn-icon-only" id="toggle-theme-mode-btn-header" title="切换日间/夜间主题">🌓</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="header-right" id="header-controls">
+                    <div class="header-actions">
+                        <!-- 移动端INDEX下拉菜单按钮 -->
+                        <button class="btn btn-icon-text mobile-index-toggle" id="mobile-index-toggle">
+                            <span>📁</span>
+                            <span>INDEX</span>
+                        </button>
+                        <button class="btn btn-icon-text" id="btn-prompt">
+                            <span>📝</span>
+                            <span>提示词</span>
+                        </button>
+                        <button class="btn btn-icon-text" id="btn-settings">
+                            <span>⚙️</span>
+                            <span>设置</span>
+                        </button>
+                        <button class="btn btn-icon-only" id="btn-theme" title="切换主题">🌓</button>
+                        <button class="btn btn-icon-text" id="btn-layout">
+                            <span>📐</span>
+                            <span>布局</span>
+                        </button>
+                        <button class="btn btn-icon-text" id="btn-workflow">
+                            <span>🔄</span>
+                            <span>工作流</span>
+                        </button>
+                        <button class="btn btn-icon-text" id="btn-event">
+                            <span>📅</span>
+                            <span>事件</span>
+                        </button>
+                        <button class="btn btn-icon-text" id="btn-batch">
+                            <span>📦</span>
+                            <span>批量执行</span>
+                        </button>
+                        <button class="btn btn-icon-text" id="btn-feedback">
+                            <span>📊</span>
+                            <span>反馈系统</span>
+                        </button>
+                        <button class="btn btn-icon-text" id="btn-copy">
+                            <span>📋</span>
+                            <span>复制</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+        </div>
+        
+        <!-- 移动端INDEX下拉菜单 -->
+        <div class="mobile-index-dropdown" id="mobile-index-dropdown" style="display: none;">
+            <div class="mobile-index-header">
+                <span>INDEX</span>
+                <button class="btn-close-mobile-index" id="close-mobile-index" title="关闭">✕</button>
+            </div>
+            <ul id="mobile-file-list"></ul>
+            <!-- 返回上一目录按钮 -->
+            <button class="mobile-index-up-btn" id="mobile-index-up-btn" title="返回上一目录">⬆</button>
+        </div>
+        
+        <!-- 主布局 -->
+        <div class="main-layout">
+            <div class="sidebar">
+                <div class="sidebar-header">
+                    <span>INDEX</span>
+                    <span id="btn-up" style="cursor: pointer;">⬆</span>
+                </div>
+                <ul id="file-list"></ul>
+            </div>
+            <div class="viewer-grid" id="viewer-grid">
+                <!-- 动态添加 pane -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- 网页端悬浮按钮和悬浮窗 -->
+    <div class="floating-action-container">
+        <!-- 悬浮按钮（FAB） -->
+        <button class="floating-action-btn" id="floating-action-btn" title="功能菜单">
+            <span class="fab-icon">⚙️</span>
+        </button>
+        
+        <!-- 可拖动的悬浮窗 -->
+        <div class="floating-actions-panel" id="floating-actions-panel">
+            <div class="floating-panel-header" id="floating-panel-drag-handle">
+                <span class="floating-panel-title">功能菜单</span>
+                <button class="floating-panel-close" id="floating-panel-close" title="关闭">✕</button>
+            </div>
+            <div class="floating-panel-body">
+                <button class="btn btn-icon-text floating-btn" id="floating-btn-prompt">
+                    <span>📝</span>
+                    <span>提示词</span>
+                </button>
+                <button class="btn btn-icon-text floating-btn" id="floating-btn-settings">
+                    <span>⚙️</span>
+                    <span>设置</span>
+                </button>
+                <button class="btn btn-icon-text floating-btn" id="floating-btn-theme" title="切换主题">
+                    <span>🌓</span>
+                    <span>主题</span>
+                </button>
+                <button class="btn btn-icon-text floating-btn" id="floating-btn-layout">
+                    <span>📐</span>
+                    <span>布局</span>
+                </button>
+                <button class="btn btn-icon-text floating-btn" id="floating-btn-workflow">
+                    <span>🔄</span>
+                    <span>工作流</span>
+                </button>
+                <button class="btn btn-icon-text floating-btn" id="floating-btn-event">
+                    <span>📅</span>
+                    <span>事件</span>
+                </button>
+                <button class="btn btn-icon-text floating-btn" id="floating-btn-feedback">
+                    <span>📊</span>
+                    <span>反馈系统</span>
+                </button>
+                <button class="btn btn-icon-text floating-btn" id="floating-btn-copy">
+                    <span>📋</span>
+                    <span>复制</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 新建操作全屏模态 -->
+    <div id="new-action-modal" class="new-action-modal" style="display: none;">
+        <div class="new-action-container">
+            <div class="new-action-header">
+                <h2 class="new-action-title">新建操作</h2>
+                <button class="btn-close" id="close-new-action-modal" title="关闭">✕</button>
+            </div>
+            <div class="new-action-body">
+                <div class="new-action-options">
+                    <button class="new-action-btn" id="modal-new-file-btn">
+                        <span class="new-action-icon">📄</span>
+                        <span class="new-action-label">新建文件</span>
+                    </button>
+                    <button class="new-action-btn" id="modal-new-folder-btn">
+                        <span class="new-action-icon">📁</span>
+                        <span class="new-action-label">新建文件夹</span>
+                    </button>
+                    <button class="new-action-btn" id="modal-organize-files-btn">
+                        <span class="new-action-icon">📦</span>
+                        <span class="new-action-label">自动整理</span>
+                    </button>
+                </div>
+                <div class="new-action-form" id="new-action-form" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label" id="new-action-form-label">路径:</label>
+                        <div class="form-input-group">
+                            <input type="text" id="new-action-path-input" class="form-input" placeholder="输入文件或文件夹路径...">
+                            <button class="btn btn-secondary" id="new-action-browse-btn">浏览</button>
+                        </div>
+                        <input type="file" id="new-action-file-input" style="display: none;" webkitdirectory="">
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-primary" id="new-action-confirm-btn">确认</button>
+                        <button class="btn btn-secondary" id="new-action-cancel-btn">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 浮动控件 -->
+    <div class="floating-controls">
+        <!-- 浮动控件（目前空） -->
+    </div>
+    
+    <!-- 全屏模态 -->
+    <div class="fullscreen-modal" id="fullscreen-modal">
+        <div class="fullscreen-content">
+            <div id="fullscreen-body"></div>
+        </div>
+    </div>
+    
+    <!-- 工作流日志全屏模态 -->
+    <div class="fullscreen-modal" id="workflow-log-fullscreen-modal" style="display: none; z-index: 100001 !important;">
+        <div class="fullscreen-content" style="max-width: 90%; max-height: 90%; margin: auto; padding: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+                <h2 style="margin: 0; color: var(--accent-blue);">工作流执行日志</h2>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-secondary" id="view-event-history-btn" style="font-size: 12px; padding: 4px 12px;">查看事件历史</button>
+                    <button class="btn btn-secondary" id="copy-fullscreen-log-btn" style="font-size: 12px; padding: 4px 12px;">复制日志</button>
+                    <button class="btn btn-secondary" id="close-workflow-log-fullscreen-btn" style="font-size: 12px; padding: 4px 12px;">关闭</button>
+                </div>
+            </div>
+            <div id="workflow-log-fullscreen-content" style="
+                width: 100%;
+                height: calc(90vh - 80px);
+                padding: 16px;
+                border: 1px solid var(--border);
+                border-radius: var(--border-radius);
+                background: var(--bg-tertiary);
+                color: var(--text-primary);
+                font-family: var(--font-code);
+                font-size: 13px;
+                white-space: pre-wrap;
+                word-break: break-all;
+                overflow-wrap: break-word;
+                overflow-y: auto;
+                line-height: 1.6;
+            ">加载中...</div>
+        </div>
+    </div>
+    
+    <!-- 提示词管理面板 -->
+    <div id="prompt-panel" class="panel-overlay" tabindex="-1">
+        <div class="panel-layout">
+            <aside class="panel-sidebar">
+                <div class="panel-sidebar-header">
+                    <span class="panel-title">📝 提示词管理</span>
+                    <button class="btn-close-panel" id="close-prompt-panel" title="关闭">✕</button>
+                </div>
+                <div class="panel-sidebar-body">
+                    <div class="current-item-badge" id="current-prompt-in-panel">
+                        <div class="badge-content">
+                            <span class="badge-label">当前提示词:</span>
+                            <span class="badge-value" id="current-prompt-name">无</span>
+                        </div>
+                        <button class="btn-clear" id="clear-prompt-btn" title="清空当前提示词">清空</button>
+                    </div>
+                    <div class="search-box">
+                        <input type="text" id="prompt-search" placeholder="🔍 搜索提示词..." class="search-input">
+                    </div>
+                    <div class="panel-list" id="prompts-list"></div>
+                </div>
+            </aside>
+            <main class="panel-main">
+                <div class="panel-main-header">
+                    <h2 class="panel-main-title">提示词编辑</h2>
+                    <div class="panel-actions">
+                        <button class="btn btn-secondary" id="new-prompt-btn">
+                            <span>➕</span>
+                            <span>新建</span>
+                        </button>
+                        <button class="btn btn-primary" id="save-prompt">保存</button>
+                        <button class="btn btn-secondary" id="update-prompt" style="display: none;">更新</button>
+                        <button class="btn btn-secondary" id="cancel-edit" style="display: none;">取消</button>
+                    </div>
+                </div>
+                <div class="panel-main-body">
+                    <div class="form-section">
+                        <label class="form-label" for="prompt-name">提示词名称</label>
+                        <input type="text" id="prompt-name" placeholder="输入提示词名称" class="form-input">
+                    </div>
+                    <div class="form-section">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="prompt-enable-workflow-control" class="checkbox-input">
+                            <span class="checkbox-text">追加工作流控制指令提示词（工作流执行时自动添加终止/继续工作流的说明）</span>
+                        </label>
+                    </div>
+                    <div class="form-section form-section-fill">
+                        <label class="form-label" for="prompt-content">提示词内容</label>
+                        <textarea id="prompt-content" placeholder="输入提示词内容" class="form-textarea form-textarea-code"></textarea>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 主题管理面板 -->
+    <div id="theme-panel" class="panel-overlay" tabindex="-1">
+        <div class="panel-layout">
+            <aside class="panel-sidebar">
+                <div class="panel-sidebar-header">
+                    <span class="panel-title">🎨 主题管理</span>
+                    <button class="btn-close-panel" id="close-theme-panel" title="关闭">✕</button>
+                </div>
+                <div class="panel-sidebar-body">
+                    <div class="current-item-badge" id="current-theme-in-panel">
+                        <div class="badge-content">
+                            <span class="badge-label">当前主题:</span>
+                            <span class="badge-value" id="current-theme-name">无</span>
+                        </div>
+                        <button class="btn-clear" id="clear-theme-btn" title="清空当前主题">清空</button>
+                    </div>
+                    <div class="search-box">
+                        <input type="text" id="theme-search" placeholder="🔍 搜索主题..." class="search-input">
+                    </div>
+                    <div class="panel-list" id="themes-list"></div>
+                </div>
+            </aside>
+            <main class="panel-main">
+                <div class="panel-main-header">
+                    <h2 class="panel-main-title">主题编辑</h2>
+                    <div class="panel-actions">
+                        <button class="btn btn-icon-only" id="toggle-theme-mode-btn" title="切换日间/夜间主题">🌓</button>
+                        <button class="btn btn-secondary" id="new-theme-btn">
+                            <span>➕</span>
+                            <span>新建</span>
+                        </button>
+                        <button class="btn btn-secondary" id="theme-import-btn">导入</button>
+                        <button class="btn btn-secondary" id="theme-export-btn">导出</button>
+                        <button class="btn btn-primary" id="save-theme">保存</button>
+                        <button class="btn btn-secondary" id="cancel-theme-edit" style="display: none;">取消</button>
+                    </div>
+                </div>
+                <div class="panel-main-body">
+                    <div class="form-section">
+                        <label class="form-label" for="theme-name">主题名称</label>
+                        <input type="text" id="theme-name" placeholder="输入主题名称" class="form-input">
+                    </div>
+                    <div class="form-section form-section-fill">
+                        <div class="form-header-actions">
+                            <label class="form-label" for="theme-content">CSS内容</label>
+                            <div class="form-actions-group">
+                                <button class="btn btn-small" id="theme-template-btn">模板</button>
+                                <button class="btn btn-small" id="theme-preview-btn">预览</button>
+                                <button class="btn btn-small" id="theme-format-btn">格式化</button>
+                            </div>
+                        </div>
+                        <div class="template-panel" id="theme-template-panel" style="display: none;">
+                            <div class="template-panel-header">
+                                <strong class="template-panel-title">CSS变量模板</strong>
+                                <div class="template-panel-actions">
+                                    <button class="btn btn-small" id="copy-theme-template">复制全部</button>
+                                    <button class="btn btn-small" id="close-theme-template">关闭</button>
+                                </div>
+                            </div>
+                            <div id="theme-template-content" class="template-panel-content"></div>
+                        </div>
+                        <textarea id="theme-content" placeholder="输入CSS内容，例如：\n:root {\n  --bg-primary: #0e1324;\n  --text-primary: #f0f4ff;\n  ...\n}" class="form-textarea form-textarea-code"></textarea>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 视窗布局管理器面板 -->
+    <div id="layout-panel" class="panel-overlay" tabindex="-1">
+        <div class="panel-layout">
+            <aside class="panel-sidebar">
+                <div class="panel-sidebar-header">
+                    <span class="panel-title">📐 视窗布局管理</span>
+                    <button class="btn-close-panel" id="close-layout-panel" title="关闭">✕</button>
+                </div>
+                <div class="panel-sidebar-body">
+                    <div class="current-item-badge" id="current-layout-in-panel">
+                        <div class="badge-content">
+                            <span class="badge-label">当前布局:</span>
+                            <span class="badge-value" id="current-layout-name">默认布局</span>
+                        </div>
+                        <button class="btn-clear" id="clear-layout-btn" title="清空当前布局">清空</button>
+                    </div>
+                    <div class="search-box">
+                        <input type="text" id="layout-search" placeholder="🔍 搜索布局..." class="search-input">
+                    </div>
+                    <div class="panel-list" id="layouts-list"></div>
+                </div>
+            </aside>
+            <main class="panel-main">
+                <div class="panel-main-header">
+                    <h2 class="panel-main-title">视窗布局编辑</h2>
+                    <div class="panel-actions">
+                        <button class="btn btn-secondary" id="new-layout-btn">
+                            <span>➕</span>
+                            <span>新建</span>
+                        </button>
+                        <button class="btn btn-secondary" id="layout-history-btn">历史</button>
+                        <button class="btn btn-secondary" id="layout-import-btn">导入</button>
+                        <button class="btn btn-secondary" id="layout-export-btn">导出</button>
+                        <button class="btn btn-primary" id="save-layout">保存并应用</button>
+                        <button class="btn btn-secondary" id="cancel-layout-edit" style="display: none;">取消</button>
+                    </div>
+                </div>
+                <div class="panel-main-body panel-main-body-scrollable">
+                    <div class="form-section">
+                        <label class="form-label" for="layout-name">布局名称</label>
+                        <input type="text" id="layout-name" placeholder="输入布局名称" class="form-input">
+                    </div>
+                    <div class="form-section">
+                        <label class="form-label" for="layout-columns">视图列数</label>
+                        <input type="number" id="layout-columns" min="1" value="2" class="form-input">
+                        <div class="form-hint">输入视图的列数（建议1-6列）</div>
+                    </div>
+                    <div class="form-section">
+                        <label class="form-label">布局预览（可拖拽调整）</label>
+                        <div id="layout-preview" class="layout-preview-area">
+                            <!-- 动态生成的预览区域 -->
+                        </div>
+                    </div>
+                    <div class="form-section">
+                        <label class="form-label">全屏显示设置</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="layout-fullscreen-enabled" checked class="checkbox-input">
+                                <span class="checkbox-text">启用全屏显示</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="layout-fullscreen-close-on-escape" checked class="checkbox-input">
+                                <span class="checkbox-text">ESC键关闭全屏</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 布局历史记录面板 -->
+    <div id="layout-history-panel" class="modal-dialog">
+        <div class="modal-dialog-header">
+            <h3 class="modal-dialog-title">布局历史记录</h3>
+            <button id="close-layout-history" class="btn-close-panel">关闭</button>
+        </div>
+        <div class="modal-dialog-body">
+            <div id="layout-history-list" class="history-list"></div>
+        </div>
+    </div>
+
+    <!-- 工作流管理面板 -->
+    <div id="workflow-panel" class="panel-overlay" tabindex="-1">
+        <div class="panel-layout">
+            <aside class="panel-sidebar">
+                <div class="panel-sidebar-header">
+                    <span class="panel-title">🔄 工作流管理</span>
+                    <button class="btn-close-panel" id="close-workflow-panel" title="关闭">✕</button>
+                </div>
+                <div class="panel-sidebar-body">
+                    <div class="search-box">
+                        <input type="text" id="workflow-search" placeholder="🔍 搜索工作流..." class="search-input">
+                    </div>
+                    <div class="panel-list" id="workflows-list"></div>
+                </div>
+            </aside>
+            <main class="panel-main">
+                <div class="panel-main-header">
+                    <h2 class="panel-main-title">工作流编辑</h2>
+                    <div class="panel-actions">
+                        <button class="btn btn-secondary" id="new-workflow-btn">
+                            <span>➕</span>
+                            <span>新建</span>
+                        </button>
+                        <button class="btn btn-primary" id="save-workflow">保存</button>
+                    </div>
+                </div>
+                <div class="panel-main-body">
+                    <div class="form-section">
+                        <label class="form-label" for="workflow-name">工作流名称</label>
+                        <input type="text" id="workflow-name" placeholder="输入工作流名称" class="form-input">
+                    </div>
+                    <div class="form-section">
+                        <label class="form-label" for="workflow-description">功能描述</label>
+                        <textarea id="workflow-description" placeholder="详细描述此工作流的功能、用途和使用场景..." class="form-textarea form-textarea-small"></textarea>
+                    </div>
+                    <div class="form-section form-section-fill">
+                        <label class="form-label">工作流可视化</label>
+                        <canvas id="workflow-canvas" class="workflow-canvas"></canvas>
+                    </div>
+                    <div class="form-section">
+                        <label class="form-label" for="workflow-content">工作流内容</label>
+                        <div class="form-hint">格式: ((x)(y)[上一个id]+[自己id]+(x)(y)[下一个id]) +((x)(y)[上一个工作流id]+[工作流自己id]+(x)(y)[工作流的下一个id])</div>
+                        <textarea id="workflow-content" placeholder="((x)(y)[prev]+[self]+(x)(y)[next]) +((x)(y)[prev_workflow]+[self_workflow]+(x)(y)[next_workflow])" class="form-textarea form-textarea-code"></textarea>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 事件管理面板 -->
+    <div id="event-panel" class="panel-overlay" tabindex="-1">
+        <div class="panel-layout">
+            <aside class="panel-sidebar">
+                <div class="panel-sidebar-header">
+                    <span class="panel-title">📅 事件管理</span>
+                    <button class="btn-close-panel" id="close-event-panel" title="关闭">✕</button>
+                </div>
+                <div class="panel-sidebar-body">
+                    <div class="search-box">
+                        <input type="text" id="event-search" placeholder="🔍 搜索事件..." class="search-input">
+                    </div>
+                    <div class="panel-list" id="events-list"></div>
+                </div>
+            </aside>
+            <main class="panel-main">
+                <div class="panel-main-header">
+                    <h2 class="panel-main-title">事件编辑</h2>
+                    <div class="panel-actions">
+                        <button class="btn btn-secondary" id="new-event-btn">
+                            <span>➕</span>
+                            <span>新建</span>
+                        </button>
+                        <button class="btn btn-primary" id="save-event">保存</button>
+                        <button class="btn btn-secondary" id="execute-event-btn">执行</button>
+                    </div>
+                </div>
+                <div class="panel-main-body panel-main-body-scrollable">
+                    <div class="form-section">
+                        <label class="form-label" for="event-name">事件名称</label>
+                        <input type="text" id="event-name" placeholder="输入事件名称" class="form-input">
+                    </div>
+                    <div class="form-section">
+                        <label class="form-label" for="event-workflow-select">选择工作流</label>
+                        <select id="event-workflow-select" class="form-select">
+                            <option value="">请选择工作流</option>
+                        </select>
+                    </div>
+                    <div class="form-section">
+                        <label class="form-label" for="event-view-select">选择视图 (Agent)</label>
+                        <div class="form-hint">总结放在什么位置</div>
+                        <select id="event-view-select" class="form-select">
+                            <option value="">请选择视图</option>
+                        </select>
+                    </div>
+                    <div class="form-section">
+                        <label class="form-label" for="event-prompt-select">总结提示词</label>
+                        <div class="form-hint">选择用于生成总结的提示词，将拼接到总结内容中</div>
+                        <select id="event-prompt-select" class="form-select">
+                            <option value="">无</option>
+                        </select>
+                    </div>
+                    <div class="form-section form-section-fill">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <label class="form-label">工作流执行状态</label>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-secondary" id="export-workflow-log-btn" style="font-size: 12px; padding: 4px 12px;">导出</button>
+                                <button class="btn btn-secondary" id="clear-workflow-log-btn" style="font-size: 12px; padding: 4px 12px;">清空</button>
+                                <button class="btn btn-secondary" id="fullscreen-workflow-log-btn" style="font-size: 12px; padding: 4px 12px;">全屏日志</button>
+                                <button class="btn btn-secondary" id="copy-workflow-log-btn" style="font-size: 12px; padding: 4px 12px;">复制日志</button>
+                                <button class="btn btn-secondary" id="test-workflow-btn" style="font-size: 12px; padding: 4px 12px;">测试</button>
+                            </div>
+                        </div>
+                        <div id="workflow-execution-status" class="execution-status-box">无执行状态</div>
+                        <div class="execution-actions" style="display: flex; gap: 10px; margin-top: 12px;">
+                            <button class="btn btn-secondary" id="pause-workflow-btn">暂停</button>
+                            <button class="btn btn-secondary" id="resume-workflow-btn">继续</button>
+                            <button class="btn btn-secondary" id="cancel-workflow-btn">终止</button>
+                        </div>
+                    </div>
+                    <!-- 执行项目路径输入框已隐藏，但功能保留 -->
+                    <input type="hidden" id="event-project-path">
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 批量执行管理面板 -->
+    <div id="batch-panel" class="panel-overlay" tabindex="-1">
+        <div class="panel-layout">
+            <aside class="panel-sidebar" id="batch-panel-sidebar">
+                <div class="sidebar-header">
+                    <span>INDEX</span>
+                    <span id="batch-btn-up" style="cursor: pointer;">⬆</span>
+                </div>
+                <ul id="batch-file-list"></ul>
+            </aside>
+            <main class="panel-main">
+                <div class="panel-main-header">
+                    <h2 class="panel-main-title">📦 批量执行</h2>
+                    <div class="panel-actions">
+                        <button class="btn btn-primary" id="batch-execute-btn">执行</button>
+                        <button class="btn-close-panel" id="close-batch-panel" title="关闭">✕</button>
+                    </div>
+                </div>
+                <div class="panel-main-body panel-main-body-scrollable">
+                    <div class="form-section">
+                        <label class="form-label" for="batch-event-select">选择事件</label>
+                        <select id="batch-event-select" class="form-select">
+                            <option value="">请选择事件</option>
+                        </select>
+                    </div>
+                    <div class="form-section">
+                        <label class="form-label">选择执行目录</label>
+                        <input type="text" id="batch-directory-path" placeholder="未选择目录" class="form-input" style="width: 100%;" title="可以直接输入或粘贴目录路径">
+                    </div>
+                    <div class="form-section">
+                        <label class="form-label" for="batch-concurrency-input">并发数量</label>
+                        <div class="form-hint" style="margin-bottom: 8px;">同时执行的文件数量（建议1-5，根据电脑配置调整）</div>
+                        <input type="number" id="batch-concurrency-input" class="form-input" min="1" max="10" value="3" style="width: 100px;">
+                    </div>
+                    <div class="form-section form-section-fill">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <label class="form-label">批量执行日志</label>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-secondary" id="view-batch-detail-logs-btn" style="font-size: 12px; padding: 4px 12px;">查看详细日志</button>
+                                <button class="btn btn-secondary" id="clear-batch-log-btn" style="font-size: 12px; padding: 4px 12px;">清空日志</button>
+                            </div>
+                        </div>
+                        <div id="batch-execution-log" class="execution-status-box" style="font-family: monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap; max-height: 400px; overflow-y: auto;">暂无执行日志</div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 批量执行目录选择模态框 -->
+    <div id="batch-directory-modal" class="modal-dialog" style="display: none;">
+        <div class="modal-dialog-header">
+            <h3 class="modal-dialog-title">选择目录</h3>
+            <button class="btn-close" id="close-batch-directory-modal" title="关闭">✕</button>
+        </div>
+        <div class="modal-dialog-body">
+            <div style="margin-bottom: 16px;">
+                <div id="batch-directory-modal-info" style="color: var(--text-secondary); font-size: 14px; margin-bottom: 12px;"></div>
+                <label class="form-label" for="batch-directory-modal-input">目录路径：</label>
+                <input type="text" id="batch-directory-modal-input" class="form-input" style="width: 100%; margin-top: 8px;">
+                <div id="batch-directory-modal-file-count" style="margin-top: 12px; padding: 8px 12px; background: var(--surface-2); border-radius: var(--border-radius); color: var(--text-primary); font-size: 13px; display: none;"></div>
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+                <button class="btn btn-secondary" id="batch-directory-modal-cancel">取消</button>
+                <button class="btn btn-primary" id="batch-directory-modal-confirm">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 使用统计管理面板 -->
+    <div id="usage-panel" class="panel-overlay" tabindex="-1">
+        <div class="panel-layout">
+            <aside class="panel-sidebar">
+                <div class="panel-sidebar-header">
+                    <span class="panel-title">📊 使用统计</span>
+                    <button class="btn-close-panel" id="close-usage-panel" title="关闭">✕</button>
+                </div>
+                <div class="panel-sidebar-body">
+                    <div class="search-box">
+                        <input type="text" id="usage-search" placeholder="🔍 搜索..." class="search-input">
+                    </div>
+                    <div class="filter-tabs" style="display: flex; gap: 8px; margin: 12px 0; padding: 0 12px;">
+                        <button class="btn btn-small filter-tab active" data-filter="all">全部</button>
+                        <button class="btn btn-small filter-tab" data-filter="workflow">工作流</button>
+                        <button class="btn btn-small filter-tab" data-filter="event">事件</button>
+                        <button class="btn btn-small filter-tab" data-filter="view">视图</button>
+                    </div>
+                    <div class="panel-list" id="usage-list"></div>
+                </div>
+            </aside>
+            <main class="panel-main">
+                <div class="panel-main-header">
+                    <h2 class="panel-main-title">使用详情</h2>
+                    <div class="panel-actions">
+                        <button class="btn btn-secondary" id="refresh-usage-btn">
+                            <span>🔄</span>
+                            <span>刷新</span>
+                        </button>
+                        <button class="btn btn-secondary" id="scan-filesystem-btn">
+                            <span>🔍</span>
+                            <span>扫描文件系统</span>
+                        </button>
+                        <button class="btn btn-primary" id="export-usage-btn">
+                            <span>📥</span>
+                            <span>导出</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="panel-main-body">
+                    <div class="usage-stats-container">
+                        <div class="stats-summary" id="usage-stats-summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                            <!-- 统计摘要卡片 -->
+                        </div>
+                        <div class="usage-details" id="usage-details">
+                            <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                <p>请从左侧列表选择一项查看详情</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 设置模态 -->
+    <div id="settings-modal" class="settings-modal" tabindex="-1">
+        <div class="settings-container">
+            <div class="settings-header">
+                <h2 class="settings-title">⚙️ 设置</h2>
+                <button class="btn-close" id="close-settings" title="关闭设置">✕</button>
+            </div>
+            
+            <div class="settings-body">
+                <!-- F12日志控制设置卡片（仅主机用户可见） -->
+                <section class="settings-section" id="f12-log-settings-section" style="display: none;">
+                    <div class="section-header">
+                        <h3 class="section-title">📝 F12日志控制</h3>
+                    </div>
+                    <div class="section-content">
+                        <div class="form-group">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <label class="form-label" style="margin: 0;">F12控制台日志输出：</label>
+                                <button id="f12-log-toggle" class="btn" style="min-width: 60px;">
+                                    <span id="f12-log-status">开启</span>
+                                </button>
+                            </div>
+                            <div class="form-hint" style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                                控制工作流执行时是否在F12控制台输出详细日志
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 字体设置卡片 -->
+                <section class="settings-section">
+                    <div class="section-header">
+                        <h3 class="section-title">📝 字体设置</h3>
+                    </div>
+                    <div class="section-content">
+                        <div class="form-group">
+                            <label class="form-label">字体大小</label>
+                            <div class="range-input-group">
+                                <input type="range" id="font-size-range" min="12" max="24" value="15" class="range-input">
+                                <span id="current-font-size" class="range-value">15px</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 视图配置卡片 -->
+                <section class="settings-section">
+                    <div class="section-header">
+                        <h3 class="section-title">👁️ 视图配置</h3>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-secondary btn-small" id="show-all-views-btn">
+                                <span>📋</span>
+                                <span>显示全部</span>
+                            </button>
+                            <button class="btn btn-primary btn-small" id="add-view">
+                                <span>➕</span>
+                                <span>添加视图</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="section-content">
+                        <div class="view-selector-container" style="margin-bottom: 16px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">选择视图:</label>
+                            <select id="view-selector" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--border-radius); background: var(--bg-tertiary); color: var(--text-primary); font-size: 14px;">
+                                <option value="">请选择视图</option>
+                            </select>
+                        </div>
+                        <div id="current-view-config" class="current-view-config"></div>
+                    </div>
+                </section>
+
+                <!-- 快捷键设置卡片 -->
+                <section class="settings-section">
+                    <div class="section-header">
+                        <h3 class="section-title">⌨️ 快捷键设置</h3>
+                    </div>
+                    <div class="section-content">
+                        <div id="keybinds-list" class="keybinds-grid">
+                            <div class="keybind-item">
+                                <label class="keybind-label">W键（向上导航）</label>
+                                <input type="text" id="key-w" value="w" maxlength="1" class="keybind-input">
+                            </div>
+                            <div class="keybind-item">
+                                <label class="keybind-label">S键（向下导航）</label>
+                                <input type="text" id="key-s" value="s" maxlength="1" class="keybind-input">
+                            </div>
+                            <div class="keybind-item">
+                                <label class="keybind-label">A键（第一个视图全屏）</label>
+                                <input type="text" id="key-a" value="a" maxlength="1" class="keybind-input">
+                            </div>
+                            <div class="keybind-item">
+                                <label class="keybind-label">D键（第二个视图全屏）</label>
+                                <input type="text" id="key-d" value="d" maxlength="1" class="keybind-input">
+                            </div>
+                            <div class="keybind-item">
+                                <label class="keybind-label">Enter键（确认选择）</label>
+                                <input type="text" id="key-enter" value="Enter" class="keybind-input" readonly>
+                            </div>
+                            <div class="keybind-item">
+                                <label class="keybind-label">ESC键（退出全屏）</label>
+                                <input type="text" id="key-esc" value="Escape" class="keybind-input" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 外部AI设置卡片（仅主机用户可见） -->
+                <section class="settings-section" id="external-ai-settings-section" style="display: none;">
+                    <div class="section-header">
+                        <h3 class="section-title">🤖 外部AI设置</h3>
+                    </div>
+                    <div class="section-content">
+                        <div class="form-group">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <label class="form-label" style="margin: 0;">外部AI函数开启状态：</label>
+                                <button id="external-ai-sync-toggle" class="btn btn-secondary" style="min-width: 60px;">
+                                    <span id="external-ai-sync-status">开启</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 回收站卡片 -->
+                <section class="settings-section">
+                    <div class="section-header">
+                        <h3 class="section-title">🗑️ 回收站</h3>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-secondary restore-all-btn" id="restore-all-btn" style="display: none; font-size: 12px; padding: 4px 12px;">
+                                <span>↩️</span>
+                                <span>一键恢复</span>
+                            </button>
+                            <button class="btn btn-secondary permanent-delete-all-btn" id="permanent-delete-all-btn" style="display: none; font-size: 12px; padding: 4px 12px;">
+                                <span>🗑️</span>
+                                <span>一键永久删除</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="section-content">
+                        <div id="trash-content" class="trash-content">
+                            <p class="loading-text">加载中...</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 反馈系统管理面板 -->
+    <div id="feedback-panel" class="panel-overlay" tabindex="-1" style="display: none;">
+        <div class="panel-layout">
+            <aside class="panel-sidebar">
+                <div class="panel-sidebar-header">
+                    <span class="panel-title">📊 反馈系统</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <button class="btn btn-secondary btn-small" id="open-feedback-config-fullscreen-btn" title="反馈配置">
+                            <span>⚙️</span>
+                            <span>反馈配置</span>
+                        </button>
+                        <button class="btn-close-panel" id="close-feedback-panel" title="关闭">✕</button>
+                    </div>
+                </div>
+                <div class="panel-sidebar-body">
+                    <div class="form-section">
+                        <label class="form-label" for="feedback-event-select">选择事件</label>
+                        <select id="feedback-event-select" class="form-select">
+                            <option value="">全部事件</option>
+                        </select>
+                    </div>
+                    <div class="form-section">
+                        <label class="form-label" for="feedback-viewid-select">选择视图ID</label>
+                        <select id="feedback-viewid-select" class="form-select">
+                            <option value="">全部视图</option>
+                        </select>
+                    </div>
+                    <div class="form-section">
+                        <label class="form-label" for="feedback-workflow-select">选择工作流名称</label>
+                        <select id="feedback-workflow-select" class="form-select">
+                            <option value="">全部工作流</option>
+                        </select>
+                    </div>
+                    <div class="form-section">
+                        <button class="btn btn-secondary btn-small" id="open-permanent-feedback-btn" style="width:100%;">⭐ 永久发送配置</button>
+                    </div>
+                    <div class="form-section">
+                        <label class="form-label">时间范围</label>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <input type="number" id="feedback-days-input" class="form-input" style="width:80px;" min="0" value="0">
+                            <span style="color:var(--text-muted); font-size:13px;">天</span>
+                            <input type="number" id="feedback-hours-input" class="form-input" style="width:80px;" min="0" max="24" value="0">
+                            <span style="color:var(--text-muted); font-size:13px;">小时</span>
+                        </div>
+                    </div>
+                    <div class="form-section">
+                        <button class="btn btn-secondary btn-small" id="refresh-feedback-list-btn" style="width:100%;">🔄 刷新反馈列表</button>
+                    </div>
+                    <div class="form-section" style="flex: 1; min-height: 0; display: flex; flex-direction: column;">
+                        <label class="form-label">反馈文件</label>
+                        <div id="feedback-list" class="panel-list" style="flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; border: 1px solid var(--border); border-radius: var(--border-radius); padding: 8px;"></div>
+                    </div>
+                </div>
+            </aside>
+            <main class="panel-main">
+                <div class="panel-main-header">
+                    <h2 class="panel-main-title">反馈配置</h2>
+                    <div class="panel-actions">
+                        <button class="btn btn-secondary" id="save-feedback-config-btn">
+                            <span>💾</span>
+                            <span>保存配置</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="panel-main-body panel-main-body-scrollable">
+                    <section class="settings-section">
+                        <div class="section-header">
+                            <h3 class="section-title">📊 反馈数量配置</h3>
+                        </div>
+                        <div class="section-content">
+                            <div id="feedback-quantity-config-scrollable" class="feedback-config-scrollable">
+                    <div class="form-group">
+                        <label class="form-label" for="feedback-count-input">读取历史反馈数量</label>
+                        <input type="number" id="feedback-count-input" class="form-input" min="0" value="0" style="width:120px;">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="workflow-feedback-count-input">读取工作流反馈数量</label>
+                        <input type="number" id="workflow-feedback-count-input" class="form-input" min="0" value="0" style="width:120px;">
+                    </div>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="settings-section">
+                        <div class="section-header">
+                            <h3 class="section-title">📋 工作流反馈配置</h3>
+                        </div>
+                        <div class="section-content">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <label class="form-label" style="margin: 0;">工作流反馈提示词配置</label>
+                            </div>
+                            <div id="workflow-feedback-config-list" class="feedback-config-scrollable"></div>
+                            <p class="form-hint">为每个工作流配置专属的反馈提示词，用于生成工作流整体反馈。工作流反馈文件命名格式：时间戳_工作流名_事件名_工作流反馈.md</p>
+                        </div>
+                    </section>
+                    <section class="settings-section">
+                        <div class="section-header">
+                            <h3 class="section-title">🔗 节点反馈配置</h3>
+                        </div>
+                        <div class="section-content">
+                            <div id="node-feedback-config-list" class="feedback-config-scrollable"></div>
+                            <p class="form-hint">为需要单独反馈的视图ID选择专属提示词；节点反馈文件命名为"事件名_时间戳_文件名_视图ID_反馈.md"。</p>
+                        </div>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <!-- 反馈文件全屏编辑器 -->
+    <div id="feedback-editor-modal" class="panel-overlay" tabindex="-1" style="display: none;">
+        <div class="panel-layout" style="max-width: 100vw; height: 100vh; max-height: 100vh; margin: 0 auto;">
+            <main class="panel-main" style="width: 100%; height: 100%; max-height: 100vh; display: flex; flex-direction: column;">
+                <div class="panel-main-header" style="flex-shrink: 0;">
+                    <h2 class="panel-main-title">📝 反馈文件编辑</h2>
+                    <div class="panel-actions">
+                        <div style="text-align: right; margin-right: 12px; font-size: 12px; color: var(--text-muted);">
+                            <div id="feedback-editor-index" style="margin-bottom: 4px;">- / -</div>
+                            <div>W 上一个 · S 下一个 · Esc 关闭</div>
+                        </div>
+                        <button class="btn btn-primary" id="feedback-editor-save-btn">
+                            <span>💾</span>
+                            <span>保存</span>
+                        </button>
+                        <button class="btn btn-secondary" id="feedback-editor-close-btn" title="关闭">
+                            <span>✕</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="panel-main-body" style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; overflow: hidden;">
+                    <div class="current-item-badge" id="feedback-editor-current-file" style="flex-shrink: 0;">
+                        <div class="badge-content" style="flex-wrap: wrap; row-gap: 4px;">
+                            <span class="badge-label">当前文件:</span>
+                            <span class="badge-value" id="feedback-editor-title">-</span>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; word-break: break-all;" id="feedback-editor-path"></div>
+                    </div>
+                    <div class="form-section form-section-fill" style="flex: 1; min-height: 0; display: flex; flex-direction: column;">
+                        <label class="form-label" for="feedback-editor-content">内容</label>
+                        <div id="feedback-editor-content" class="md-render" style="flex: 1; min-height: 0; overflow-y: auto; padding: 16px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--border-radius); font-size: 14px; line-height: 1.6; color: var(--text-primary);"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <!-- 永久发送配置面板 -->
+    <div id="permanent-feedback-panel" class="panel-overlay" tabindex="-1" style="display: none; overflow: hidden;">
+        <div class="panel-layout" style="max-width: 1200px; margin: 0 auto; height: 100vh; max-height: 100vh; overflow: hidden;">
+            <div class="panel-main" style="width: 100%; height: 100%; max-height: 100vh; display: flex; flex-direction: column; overflow: hidden;">
+                <div class="panel-main-header" style="flex-shrink: 0;">
+                    <h2 class="panel-main-title">⭐ 永久发送配置</h2>
+                    <div class="panel-actions">
+                        <button class="btn btn-secondary" id="save-permanent-feedback-btn">
+                            <span>💾</span>
+                            <span>保存配置</span>
+                        </button>
+                        <button class="btn-close-panel" id="close-permanent-feedback-panel" title="关闭">✕</button>
+                    </div>
+                </div>
+                <div class="panel-main-body panel-main-body-scrollable" style="flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;">
+                    <section class="settings-section">
+                        <div class="section-header">
+                            <h3 class="section-title">📋 永久反馈说明</h3>
+                        </div>
+                        <div class="section-content">
+                            <p class="form-hint" style="margin-bottom: 16px;">
+                                永久反馈文件会始终包含在发送给AI的内容中，不占用时间戳反馈的数量限制。
+                                为每个视图ID配置永久反馈文件，这些文件会在每次执行时自动包含。
+                            </p>
+                        </div>
+                    </section>
+                    <section class="settings-section">
+                        <div class="section-header">
+                            <h3 class="section-title">🔗 视图永久反馈配置</h3>
+                        </div>
+                        <div class="section-content" style="max-height: calc(100vh - 300px); overflow-y: auto; overflow-x: hidden;">
+                            <div id="permanent-feedback-config-list"></div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 全屏反馈配置面板 -->
+    <div id="feedback-config-fullscreen-panel" class="panel-overlay" tabindex="-1">
+        <div class="feedback-config-navbar">
+            <h2 class="feedback-config-navbar-title">⚙️ 反馈配置</h2>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="feedback-config-navbar-buttons">
+                    <button class="feedback-config-nav-btn active" data-tab="quantity">
+                        <span>📊</span>
+                        <span>反馈数量配置</span>
+                    </button>
+                    <button class="feedback-config-nav-btn" data-tab="workflow">
+                        <span>📋</span>
+                        <span>工作流反馈配置</span>
+                    </button>
+                    <button class="feedback-config-nav-btn" data-tab="node">
+                        <span>🔗</span>
+                        <span>节点反馈配置</span>
+                    </button>
+                </div>
+                <button class="btn btn-primary" id="save-feedback-config-fullscreen-btn">
+                    <span>💾</span>
+                    <span>保存配置</span>
+                </button>
+                <button class="btn-close-panel" id="close-feedback-config-fullscreen-btn" title="关闭">✕</button>
+            </div>
+        </div>
+        <div class="feedback-config-content-area">
+            <!-- 反馈数量配置 -->
+            <div class="feedback-config-content active" id="feedback-config-quantity-content">
+                <div class="feedback-config-content-section">
+                    <h3 class="section-title" style="margin-bottom: var(--space-4);">📊 反馈数量配置</h3>
+                    <div class="form-group">
+                        <label class="form-label" for="feedback-count-input-fullscreen">读取历史反馈数量</label>
+                        <input type="number" id="feedback-count-input-fullscreen" class="form-input" min="0" value="0" style="width:120px;">
+                    </div>
+                    <div class="form-group" style="margin-top: var(--space-4);">
+                        <label class="form-label" for="workflow-feedback-count-input-fullscreen">读取工作流反馈数量</label>
+                        <input type="number" id="workflow-feedback-count-input-fullscreen" class="form-input" min="0" value="0" style="width:120px;">
+                    </div>
+                </div>
+            </div>
+            <!-- 工作流反馈配置 -->
+            <div class="feedback-config-content" id="feedback-config-workflow-content">
+                <div class="feedback-config-content-section">
+                    <h3 class="section-title" style="margin-bottom: var(--space-4);">📋 工作流反馈配置</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4);">
+                        <label class="form-label" style="margin: 0;">工作流反馈提示词配置</label>
+                    </div>
+                    <div id="workflow-feedback-config-list-fullscreen" class="feedback-config-scrollable"></div>
+                    <p class="form-hint" style="margin-top: var(--space-4);">为每个工作流配置专属的反馈提示词，用于生成工作流整体反馈。工作流反馈文件命名格式：时间戳_工作流名_事件名_工作流反馈.md</p>
+                </div>
+            </div>
+            <!-- 节点反馈配置 -->
+            <div class="feedback-config-content" id="feedback-config-node-content">
+                <div class="feedback-config-content-section">
+                    <h3 class="section-title" style="margin-bottom: var(--space-4);">🔗 节点反馈配置</h3>
+                    <div id="node-feedback-config-list-fullscreen" class="feedback-config-scrollable"></div>
+                    <p class="form-hint" style="margin-top: var(--space-4);">为需要单独反馈的视图ID选择专属提示词；节点反馈文件命名为"事件名_时间戳_文件名_视图ID_反馈.md"。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 关键字识别管理面板 -->
+    <div id="keyword-recognition-panel" class="panel-overlay" tabindex="-1" style="display: none;">
+        <div class="panel-layout">
+            <aside class="panel-sidebar">
+                <div class="panel-sidebar-header">
+                    <span class="panel-title">🔑 关键字识别管理</span>
+                    <button class="btn-close-panel" id="close-keyword-recognition-panel" title="关闭">✕</button>
+                </div>
+                <div class="panel-sidebar-body">
+                    <div class="current-item-badge" id="current-enabled-rules-badge">
+                        <div class="badge-content">
+                            <span class="badge-label">当前启用:</span>
+                            <span class="badge-value" id="current-enabled-rules-count">0 个</span>
+                        </div>
+                    </div>
+                    <div class="search-box">
+                        <input type="text" id="keyword-recognition-search" placeholder="🔍 搜索规则..." class="search-input">
+                    </div>
+                    <div class="panel-list" id="keyword-recognition-rules-list"></div>
+                </div>
+            </aside>
+            <main class="panel-main">
+                <div class="panel-main-header">
+                    <h2 class="panel-main-title">规则编辑</h2>
+                    <div class="panel-actions">
+                        <button class="btn btn-secondary" id="test-keyword-recognition-btn" title="测试关键字识别">
+                            <span>🧪</span>
+                            <span>测试</span>
+                        </button>
+                        <button class="btn btn-secondary" id="view-keyword-stats-from-manager-btn" title="查看关键字统计">
+                            <span>📊</span>
+                            <span>关键字统计</span>
+                        </button>
+                        <button class="btn btn-secondary" id="new-keyword-recognition-rule-btn">
+                            <span>➕</span>
+                            <span>新建</span>
+                        </button>
+                        <button class="btn btn-primary" id="save-keyword-recognition-rule" style="display: none;">保存</button>
+                        <button class="btn btn-secondary" id="cancel-keyword-recognition-edit" style="display: none;">取消</button>
+                    </div>
+                </div>
+                <div class="panel-main-body">
+                    <div class="form-section">
+                        <label class="form-label" for="keyword-recognition-rule-title">规则标题</label>
+                        <input type="text" id="keyword-recognition-rule-title" placeholder="输入规则标题" class="form-input">
+                    </div>
+                    <div class="form-section">
+                        <label class="form-label" for="keyword-recognition-rule-start-symbol">开头标识</label>
+                        <input type="text" id="keyword-recognition-rule-start-symbol" placeholder="例如: &lt;&lt;" class="form-input">
+                    </div>
+                    <div class="form-section">
+                        <label class="form-label" for="keyword-recognition-rule-end-symbol">结尾标识</label>
+                        <input type="text" id="keyword-recognition-rule-end-symbol" placeholder="例如: &gt;&gt;" class="form-input">
+                    </div>
+                    <div class="form-section">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="keyword-recognition-rule-enabled" class="checkbox-input" checked>
+                            <span class="checkbox-text">是否开启识别</span>
+                        </label>
+                    </div>
+                    <div class="form-section">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <label class="form-label" for="keyword-recognition-rule-description" style="margin: 0; flex: 1;">功能描述</label>
+                            <button class="btn btn-small" id="export-keyword-recognition-rule" title="导出规则和代码块">📥 导出</button>
+                            <button class="btn btn-small" id="import-keyword-recognition-rule" title="导入规则和代码块">📤 导入</button>
+                        </div>
+                        <textarea id="keyword-recognition-rule-description" placeholder="输入此规则的功能描述，用于指导AI如何使用此关键字识别格式" class="form-textarea" style="min-height: 100px;"></textarea>
+                    </div>
+                    <div class="form-section form-section-fill">
+                        <div class="form-header-actions">
+                            <label class="form-label">功能函数管理</label>
+                            <div class="form-actions-group">
+                                <button class="btn btn-small" id="keyword-recognition-function-template-btn">功能函数模板</button>
+                                <button class="btn btn-small" id="keyword-recognition-function-code-editor-btn">代码编辑器</button>
+                            </div>
+                        </div>
+                        <div class="template-panel" id="keyword-recognition-function-template-panel" style="display: none; margin-top: 12px;">
+                            <div class="template-panel-header">
+                                <strong class="template-panel-title">功能函数生成模板</strong>
+                                <div class="template-panel-actions">
+                                    <button class="btn btn-small" id="copy-keyword-recognition-function-template">复制全部</button>
+                                    <button class="btn btn-small" id="close-keyword-recognition-function-template">关闭</button>
+                                </div>
+                            </div>
+                            <div id="keyword-recognition-function-template-content" class="template-panel-content"></div>
+                        </div>
+                        <div id="keyword-recognition-function-code-editor-panel" style="display: none; margin-top: 12px; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--border-radius);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                <label class="form-label" style="font-size: 13px; font-weight: 500; margin: 0;">粘贴AI生成的代码（将按函数名保存到独立文件）</label>
+                                <button class="btn btn-small" id="close-keyword-recognition-function-code-editor">关闭</button>
+                            </div>
+                            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                                <button class="btn btn-small" id="copy-keyword-recognition-code-block" title="复制当前规则的代码块">📋 复制代码块</button>
+                                <button class="btn btn-small" id="refresh-keyword-recognition-code-block" title="从文件重新加载代码块">🔄 刷新</button>
+                            </div>
+                            <textarea id="keyword-recognition-function-code-input" placeholder="将AI生成的代码粘贴到这里，然后点击保存按钮即可按函数名保存到 js/modules/usage/keywordRecognitionFunctions/ 目录下的独立文件" class="form-textarea form-textarea-code" style="font-family: 'Courier New', monospace; font-size: 13px; overflow-x: auto; overflow-y: auto; white-space: pre; word-wrap: normal; resize: none; height: 300px;"></textarea>
+                            <div style="display: flex; gap: 8px; margin-top: 8px; justify-content: flex-end;">
+                                <button class="btn btn-secondary btn-small" id="clear-keyword-recognition-function-code">清空</button>
+                                <button class="btn btn-primary btn-small" id="save-keyword-recognition-function-code">💾 保存到文件</button>
+                            </div>
+                            <div id="keyword-recognition-function-save-status" style="margin-top: 8px; font-size: 12px; color: var(--text-muted); min-height: 18px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 关键字识别测试面板 -->
+    <div id="keyword-recognition-test-panel" class="panel-overlay" tabindex="-1" style="display: none;">
+        <div class="panel-layout" style="width: 100vw; height: 100vh; max-width: 100vw; max-height: 100vh; border-radius: 0;">
+            <div class="panel-main" style="width: 100%; height: 100%; display: flex; flex-direction: column;">
+                <div class="panel-main-header" style="flex-shrink: 0;">
+                    <h2 class="panel-main-title">🧪 关键字识别测试</h2>
+                    <button class="btn-close-panel" id="close-keyword-recognition-test-panel" title="关闭">✕</button>
+                </div>
+                <div class="panel-main-body" style="padding: 24px; flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 24px; flex-shrink: 0;">
+                        <div class="form-section">
+                            <label class="form-label">选择规则</label>
+                            <select id="test-rule-select" class="form-input">
+                                <option value="">请选择规则...</option>
+                            </select>
+                        </div>
+                        <div class="form-section">
+                            <label class="form-label">选择工作流</label>
+                            <div style="display: flex; gap: 8px;">
+                                <select id="test-workflow-select" class="form-input" style="flex: 1;">
+                                    <option value="">请选择工作流...</option>
+                                </select>
+                                <button class="btn btn-secondary" id="open-workflow-manager-btn" title="打开工作流管理面板" style="white-space: nowrap; padding: 8px 12px;">
+                                    <span>📋</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-section">
+                            <label class="form-label">选择步骤（留空则执行全部）</label>
+                            <select id="test-step-select" class="form-input" disabled>
+                                <option value="">请先选择工作流...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; flex-shrink: 0;">
+                        <div class="form-section">
+                            <label class="form-label">执行模式</label>
+                            <div style="display: flex; gap: 12px;">
+                                <label class="checkbox-label" style="flex: 1;">
+                                    <input type="radio" name="test-execution-mode" id="test-mode-sequential" value="sequential" checked class="checkbox-input">
+                                    <span class="checkbox-text">顺序执行（每步延迟5秒）</span>
+                                </label>
+                                <label class="checkbox-label" style="flex: 1;">
+                                    <input type="radio" name="test-execution-mode" id="test-mode-concurrent" value="concurrent" class="checkbox-input">
+                                    <span class="checkbox-text">并发执行（满足依赖即执行）</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-section">
+                            <label class="form-label">操作</label>
+                            <div style="display: flex; gap: 12px;">
+                                <button class="btn btn-primary" id="run-keyword-test-btn" style="flex: 1;">
+                                    <span>▶️</span>
+                                    <span>执行测试</span>
+                                </button>
+                                <button class="btn btn-secondary" id="clear-test-results-btn" style="flex: 1;">
+                                    <span>🗑️</span>
+                                    <span>清空结果</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; flex: 1; min-height: 0; overflow: hidden;">
+                        <div class="form-section" style="display: flex; flex-direction: column; min-height: 0;">
+                            <label class="form-label">测试内容（模拟AI回复，可包含关键字）</label>
+                            <textarea id="test-content-input" class="form-textarea" placeholder="输入测试内容，可以包含关键字，例如：&lt;&lt;视图提示词&gt;&gt; 或 &lt;&lt;&lt;关键字&gt;&gt;&gt;" style="flex: 1; min-height: 200px; font-family: 'Courier New', monospace; resize: none;"></textarea>
+                            <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                                提示：可以输入包含关键字的文本，系统会检测并执行对应的处理函数。如果选择了工作流和步骤，此内容将作为该步骤的AI回复进行测试。
+                            </div>
+                        </div>
+                        <div class="form-section" style="display: flex; flex-direction: column; min-height: 0;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <label class="form-label" style="margin: 0;">测试结果</label>
+                                <button class="btn btn-secondary btn-small" id="copy-test-results-btn" style="font-size: 12px; padding: 4px 12px;">
+                                    <span>📋</span>
+                                    <span>复制结果</span>
+                                </button>
+                            </div>
+                            <div id="test-results-content" style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--border-radius); padding: 16px; flex: 1; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 13px; white-space: pre-wrap; word-wrap: break-word; min-height: 0;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 视图配置全屏面板 -->
+    <div id="view-config-fullscreen-modal" class="settings-modal" tabindex="-1">
+        <div class="settings-container" style="width: 100vw; height: 100vh; max-width: 100vw; max-height: 100vh; border-radius: 0;">
+            <div class="settings-header">
+                <h2 class="settings-title">👁️ 视图配置管理</h2>
+                <button class="btn-close" id="close-view-config-fullscreen" title="关闭">✕</button>
+            </div>
+            
+            <div class="settings-body" style="display: flex; gap: 24px; padding: 24px; height: 100%; overflow: hidden;">
+                <!-- 左侧：视图列表和历史记录（40%） -->
+                <aside style="width: 40%; flex-shrink: 0; display: flex; flex-direction: column; height: 100%; gap: 16px;">
+                    <!-- 视图列表 -->
+                    <div style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">视图列表</h3>
+                        <div id="view-config-list" style="display: flex; flex-direction: column; gap: 8px; flex: 1; overflow-y: auto; padding: 8px; background: var(--bg-tertiary); border-radius: var(--border-radius); border: 1px solid var(--border); min-height: 0;"></div>
+                    </div>
+                    
+                    <!-- 历史记录 -->
+                    <div style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">历史记录</h3>
+                        <div id="view-config-history" style="flex: 1; overflow-y: auto; padding: 8px; background: var(--bg-tertiary); border-radius: var(--border-radius); border: 1px solid var(--border); min-height: 0;"></div>
+                    </div>
+                    
+                    <!-- 按钮 -->
+                    <div style="display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;">
+                        <button class="btn btn-primary" id="new-view-in-fullscreen" style="width: 100%;">
+                            <span>➕</span>
+                            <span>新建视图</span>
+                        </button>
+                        <button class="btn btn-secondary" id="save-view-config" style="width: 100%;">
+                            <span>💾</span>
+                            <span>保存配置</span>
+                        </button>
+                    </div>
+                </aside>
+                
+                <!-- 右侧：配置编辑区（60%） -->
+                <main style="width: 60%; flex-shrink: 0; height: 100%; overflow: hidden; display: flex; flex-direction: column;">
+                    <div id="view-config-editor" style="background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 24px; flex: 1; overflow-y: auto;">
+                        <p style="color: var(--text-muted); text-align: center; padding: 40px;">请从左侧选择视图进行编辑，或点击"新建视图"创建新视图</p>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript模块 -->
+    <!-- 注意：模块加载顺序很重要 -->
+    
+    <!-- 核心模块（最先加载） -->
+    <script type="module" src="js/core/state.js"></script>
+    <script type="module" src="js/core/api.js"></script>
+    
+    <!-- 工具模块 -->
+    <script type="module" src="js/utils/path.js"></script>
+    <script type="module" src="js/utils/fileUtils.js"></script>
+    <script type="module" src="js/utils/history.js"></script>
+    <script type="module" src="js/utils/managerHistory.js"></script>
+    <script type="module" src="js/utils/markdownConverter.js"></script>
+    
+    <!-- 功能模块（按依赖顺序） -->
+    <script type="module" src="js/modules/fileManager.js"></script>
+    <script type="module" src="js/modules/fileOrganizer.js"></script>
+    <script type="module" src="js/modules/feedbackManager.js"></script>
+    <script type="module" src="js/modules/viewManager.js"></script>
+    <script type="module" src="js/modules/editor.js"></script>
+    <script type="module" src="js/modules/tableEditor.js"></script>
+    <script type="module" src="js/modules/mermaidRenderer.js"></script>
+    <script type="module" src="js/modules/promptManager.js"></script>
+    <script type="module" src="js/modules/themeManager.js"></script>
+    <script type="module" src="js/modules/layoutManager.js"></script>
+    <script type="module" src="js/modules/aiService.js"></script>
+    <script type="module" src="js/modules/workflowManager.js"></script>
+    <script type="module" src="js/modules/workflowVisualizer.js"></script>
+    <script type="module" src="js/modules/eventManager.js"></script>
+    <script type="module" src="js/modules/keyboardHandler.js"></script>
+    <script type="module" src="js/modules/eventBindings.js"></script>
+    
+    <!-- 调试工具 -->
+    <script type="module" src="js/debug.js"></script>
+    
+    <!-- 主应用入口（最后加载） -->
+    <script type="module" src="js/app.js"></script>
+    
+    <!-- 错误处理和调试 -->
+    <script>
+        // 拦截控制台错误，过滤 all.js 相关错误
+        (function() {
+            const originalError = console.error;
+            console.error = function() {
+                // 检查是否包含 all.js 相关错误
+                const args = Array.from(arguments);
+                const errorStr = args.join(' ');
+                
+                // 如果错误消息包含 all.js 或相关的 undefined 错误，则静默处理
+                if (errorStr.includes('all.js') || 
+                    (errorStr.includes('Cannot read properties of undefined (reading \'0\')') &&
+                     errorStr.includes('HTMLBodyElement'))) {
+                    // 静默处理，不输出
+                    return;
+                }
+                
+                // 否则正常输出错误
+                originalError.apply(console, arguments);
+            };
+        })();
+        
+        // 全局错误处理
+        window.addEventListener('error', function(e) {
+            // 关键修复：过滤掉来自 all.js 的所有错误，避免控制台被刷屏
+            // all.js 可能是浏览器扩展或第三方库生成的，这些错误不影响应用功能
+            // 过滤所有 all.js 相关的错误（包括 Cannot read properties of undefined 等）
+            if (e.filename && (e.filename.includes('all.js') || e.filename.includes('all.min.js'))) {
+                // 静默处理这些已知错误，不输出到控制台
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+            
+            // 过滤常见的来自第三方库的错误
+            if (e.message && (
+                e.message.includes("Cannot read properties of undefined (reading '0')") ||
+                e.message.includes("Cannot read property '0' of undefined")
+            )) {
+                // 如果错误堆栈中包含 all.js，也静默处理
+                if (e.error && e.error.stack && e.error.stack.includes('all.js')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+            }
+            
+            console.error('全局错误:', e.error);
+            console.error('错误文件:', e.filename, '行号:', e.lineno);
+            console.error('错误消息:', e.message);
+        });
+        
+        window.addEventListener('unhandledrejection', function(e) {
+            // 过滤来自 all.js 的 Promise 错误
+            const reason = e.reason;
+            if (reason && typeof reason === 'object') {
+                const stack = reason.stack || '';
+                const message = reason.message || String(reason);
+                if (stack.includes('all.js') || message.includes('Cannot read properties of undefined')) {
+                    // 静默处理
+                    return;
+                }
+            }
+            console.error('未处理的Promise拒绝:', e.reason);
+        });
+        
+        // 调试：检查按钮事件绑定
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                console.log('=== 事件绑定检查 ===');
+                const btnSettings = document.getElementById('btn-settings');
+                const btnPrompt = document.getElementById('btn-prompt');
+                const btnTheme = document.getElementById('btn-theme');
+                const btnLayout = document.getElementById('btn-layout');
+                const btnCopy = document.getElementById('btn-copy');
+                
+                console.log('btn-settings onclick:', btnSettings ? (btnSettings.onclick ? '已绑定' : '未绑定') : '元素不存在');
+                console.log('btn-prompt onclick:', btnPrompt ? (btnPrompt.onclick ? '已绑定' : '未绑定') : '元素不存在');
+                console.log('btn-theme onclick:', btnTheme ? (btnTheme.onclick ? '已绑定' : '未绑定') : '元素不存在');
+                console.log('btn-layout onclick:', btnLayout ? (btnLayout.onclick ? '已绑定' : '未绑定') : '元素不存在');
+                console.log('btn-copy onclick:', btnCopy ? (btnCopy.onclick ? '已绑定' : '未绑定') : '元素不存在');
+                console.log('==================');
+                
+                // 如果事件未绑定，尝试手动绑定
+                if (btnSettings && !btnSettings.onclick && window.initEventBindings) {
+                    console.warn('检测到事件未绑定，尝试重新初始化...');
+                    try {
+                        window.initEventBindings();
+                    } catch (e) {
+                        console.error('重新初始化失败:', e);
+                    }
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

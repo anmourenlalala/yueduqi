@@ -1,0 +1,375 @@
+/**
+ * 主题变量和基础样式
+ * 包含深色和浅色主题的CSS变量定义
+ */
+
+:root {
+    /* ==================== 深色主题 - 性能优化版 ==================== */
+    /* --- 基础颜色 - 保持深邃但减少渐变 --- */
+    --bg-primary: #0e1324;
+    --bg-secondary: #1a2135;
+    --bg-tertiary: #242c44;
+    --border: #2e3858;
+    --border-light: #3c4870;
+
+    /* --- 文字颜色 - 保持清晰对比 --- */
+    --text-primary: #f0f4ff;
+    --text-secondary: #b0bce8;
+    --text-muted: #7a88c0;
+
+    /* --- 核心色调 - 保持蓝紫但不花哨 --- */
+    --accent-blue: #4d9eff;
+    --accent-purple: #8a6dff;
+    --accent-cyan: #52d1e0;
+
+    /* --- 简化渐变 - 只保留必要的 --- */
+    --gradient-primary: linear-gradient(135deg, #4d9eff 0%, #8a6dff 100%);
+    --gradient-blue: linear-gradient(135deg, #4d9eff 0%, #52d1e0 100%);
+
+    /* --- 简化阴影 - 移除发光阴影 --- */
+    --shadow-soft: 0 6px 20px rgba(0, 0, 0, 0.2);
+    --shadow-card: 0 3px 12px rgba(0, 0, 0, 0.15);
+    --shadow-hover: 0 8px 25px rgba(0, 0, 0, 0.25);
+
+    /* --- 界面尺寸 --- */
+    --sidebar-width: 220px;
+    --font-size: 1rem; /* 使用相对单位，默认16px */
+    --border-radius: 8px;
+    --border-radius-lg: 12px;
+
+    /* --- 字体 --- */
+    --font-ui: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-read: 'Inter', 'Microsoft YaHei', sans-serif;
+    --font-code: 'JetBrains Mono', Consolas, monospace;
+
+    /* --- 功能变量 --- */
+    --bg-sidebar: var(--bg-tertiary);
+    --bg-pane: var(--bg-secondary);
+    --bg-body: var(--bg-primary);
+    --accent: var(--accent-blue);
+    --accent-bg: rgba(77, 158, 255, 0.12);
+    --code-bg: rgba(30, 38, 64, 0.7);
+    
+    /* 选中文本样式 */
+    /* 背景颜色（包含透明度，格式：rgba(r, g, b, opacity)） */
+    --selection-bg-color: rgba(77, 158, 255, 0.3);
+    /* 文字颜色 */
+    --selection-text-color: var(--text-0);
+    /* 边框宽度（通过调整背景色实现，实际边框不支持） */
+    --selection-border-width: 1px;
+    /* 边框颜色（用于参考，实际通过调整背景色实现） */
+    --selection-border-color: var(--primary-400);
+}
+
+[data-theme="light"] {
+    /* ==================== 浅色主题 - 性能优化版 ==================== */
+    /* --- 基础颜色 - 柔和的蓝紫基调 --- */
+    --bg-primary: #f5f8ff;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #edf2ff;
+    --border: #d0dcff;
+    --border-light: #b8c8ff;
+
+    /* --- 文字颜色 - 深色确保可读性 --- */
+    --text-primary: #1a2a5a;
+    --text-secondary: #4a5c9e;
+    --text-muted: #7a8ac0;
+
+    /* --- 核心色调 - 保持鲜艳但不刺眼 --- */
+    --accent-blue: #3d8aff;
+    --accent-purple: #7a5dff;
+    --accent-cyan: #3ac5d5;
+
+    /* --- 简化渐变 --- */
+    --gradient-primary: linear-gradient(135deg, #3d8aff 0%, #7a5dff 100%);
+    --gradient-blue: linear-gradient(135deg, #3d8aff 0%, #3ac5d5 100%);
+
+    /* --- 简化阴影 --- */
+    --shadow-soft: 0 6px 20px rgba(61, 138, 255, 0.1);
+    --shadow-card: 0 3px 12px rgba(0, 0, 0, 0.08);
+    --shadow-hover: 0 8px 25px rgba(61, 138, 255, 0.15);
+
+    /* --- 功能变量 --- */
+    --bg-sidebar: var(--bg-tertiary);
+    --bg-pane: var(--bg-secondary);
+    --bg-body: var(--bg-primary);
+    --accent: var(--accent-blue);
+    --accent-bg: rgba(61, 138, 255, 0.1);
+    --code-bg: rgba(237, 242, 255, 0.8);
+    
+    /* 选中文本样式 */
+    /* 背景颜色（包含透明度，格式：rgba(r, g, b, opacity)） */
+    --selection-bg-color: rgba(26, 106, 255, 0.3);
+    /* 文字颜色 */
+    --selection-text-color: var(--text-0);
+    /* 边框宽度（通过调整背景色实现，实际边框不支持） */
+    --selection-border-width: 1px;
+    /* 边框颜色（用于参考，实际通过调整背景色实现） */
+    --selection-border-color: var(--primary-500);
+}
+
+/* ==================== 基础样式重置 ==================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    outline: none;
+}
+
+html {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    /* 基础字体大小，使用相对单位以便自适应 */
+    font-size: 16px; /* 默认基础字体大小 */
+}
+
+body {
+    background-color: var(--bg-body);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    width: 100%;
+    height: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* ==================== 应用容器 ==================== */
+.app-container {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* ==================== 选中文本样式 ==================== */
+/* 注意：::selection 伪元素只支持 background-color 和 color 属性 */
+/* 边框和透明度通过 background-color 的 rgba 值控制 */
+::selection {
+    background-color: var(--selection-bg-color);
+    color: var(--selection-text-color);
+}
+
+::-moz-selection {
+    background-color: var(--selection-bg-color);
+    color: var(--selection-text-color);
+}
+
+/* 移除所有粒子/动画背景，改用静态纹理 */
+/* 动态星空背景 */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 15% 30%, rgba(77, 158, 255, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 85% 70%, rgba(138, 109, 255, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(82, 209, 224, 0.08) 0%, transparent 60%),
+        linear-gradient(135deg, rgba(77, 158, 255, 0.03) 0%, transparent 50%, rgba(138, 109, 255, 0.03) 100%),
+        linear-gradient(90deg, rgba(77, 158, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(rgba(77, 158, 255, 0.02) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 80px 80px, 80px 80px;
+    pointer-events: none;
+    z-index: -2;
+    opacity: 1;
+    animation: backgroundShift 20s ease-in-out infinite;
+}
+
+@keyframes backgroundShift {
+    0%, 100% {
+        background-position: 0% 0%, 100% 100%, 50% 50%, 0% 0%, 0 0, 0 0;
+    }
+    50% {
+        background-position: 100% 50%, 0% 50%, 50% 50%, 100% 0%, 40px 40px, 40px 40px;
+    }
+}
+
+/* 星空粒子效果 */
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(2px 2px at 20% 30%, rgba(255, 255, 255, 0.3), transparent),
+        radial-gradient(2px 2px at 60% 70%, rgba(77, 158, 255, 0.4), transparent),
+        radial-gradient(1px 1px at 50% 50%, rgba(255, 255, 255, 0.2), transparent),
+        radial-gradient(1px 1px at 80% 10%, rgba(138, 109, 255, 0.3), transparent),
+        radial-gradient(2px 2px at 90% 60%, rgba(82, 209, 224, 0.4), transparent),
+        radial-gradient(1px 1px at 33% 80%, rgba(255, 255, 255, 0.2), transparent),
+        radial-gradient(1px 1px at 70% 20%, rgba(77, 158, 255, 0.3), transparent);
+    background-repeat: repeat;
+    background-size: 200% 200%;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0.6;
+    animation: starTwinkle 8s ease-in-out infinite;
+}
+
+@keyframes starTwinkle {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.1); }
+}
+
+[data-theme="light"] body::before {
+    background: 
+        radial-gradient(circle at 15% 30%, rgba(26, 106, 255, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 70%, rgba(122, 93, 255, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.04) 0%, transparent 60%),
+        linear-gradient(135deg, rgba(26, 106, 255, 0.02) 0%, transparent 50%, rgba(122, 93, 255, 0.02) 100%),
+        linear-gradient(90deg, rgba(26, 106, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(rgba(26, 106, 255, 0.015) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 80px 80px, 80px 80px;
+}
+
+[data-theme="light"] body::after {
+    opacity: 0.3;
+    background-image: 
+        radial-gradient(2px 2px at 20% 30%, rgba(26, 106, 255, 0.2), transparent),
+        radial-gradient(2px 2px at 60% 70%, rgba(122, 93, 255, 0.2), transparent),
+        radial-gradient(1px 1px at 50% 50%, rgba(26, 106, 255, 0.15), transparent);
+}
+
+/* ==================== 滚动条样式变量（可在主题中自定义） ==================== */
+:root {
+    /* 滚动条尺寸 */
+    /* 滚动条尺寸 */
+    --scrollbar-width: 10px;
+    --scrollbar-height: 10px;
+    --scrollbar-thumb-radius: 5px;
+    --scrollbar-track-radius: 5px;
+    
+    /* 滚动条颜色 */
+    --scrollbar-thumb-color: #4d9eff;
+    --scrollbar-thumb-hover-color: #5db8ff;
+    --scrollbar-track-color: #2f3b58;
+    
+    /* 滚动条透明度 */
+    --scrollbar-thumb-opacity: 0.8;
+    --scrollbar-thumb-hover-opacity: 1;
+    --scrollbar-track-opacity: 0.2;
+    
+    /* 滚动条特效 - 使用CSS变量 */
+    --scrollbar-thumb-shadow: 0 2px 8px rgba(77, 158, 255, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    --scrollbar-thumb-hover-shadow: 0 4px 16px rgba(77, 158, 255, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    --scrollbar-thumb-gradient: linear-gradient(135deg, var(--primary-400) 0%, var(--accent-500) 100%);
+    --scrollbar-thumb-hover-gradient: linear-gradient(135deg, var(--primary-500) 0%, var(--accent-600) 100%);
+}
+
+[data-theme="light"] {
+    /* 滚动条尺寸 */
+    --scrollbar-width: 10px;
+    --scrollbar-height: 10px;
+    --scrollbar-thumb-radius: 5px;
+    --scrollbar-track-radius: 5px;
+    
+    /* 滚动条颜色 - 使用CSS变量，可在主题面板修改 */
+    --scrollbar-thumb-color: var(--primary-500);
+    --scrollbar-thumb-hover-color: var(--primary-600);
+    --scrollbar-track-color: var(--surface-2);
+    
+    /* 滚动条透明度 */
+    --scrollbar-thumb-opacity: 0.8;
+    --scrollbar-thumb-hover-opacity: 1;
+    --scrollbar-track-opacity: 0.3;
+    
+    /* 滚动条特效 - 使用CSS变量 */
+    --scrollbar-thumb-shadow: 0 2px 8px rgba(26, 106, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    --scrollbar-thumb-hover-shadow: 0 4px 16px rgba(26, 106, 255, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    --scrollbar-thumb-gradient: linear-gradient(135deg, var(--primary-500) 0%, var(--accent-500) 100%);
+    --scrollbar-thumb-hover-gradient: linear-gradient(135deg, var(--primary-600) 0%, var(--accent-600) 100%);
+}
+
+/* ==================== 滚动条样式（始终显示，美化版） ==================== */
+/* 全局滚动条 - Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb-color) var(--scrollbar-track-color);
+}
+
+/* Webkit滚动条基础样式 - 确保所有元素都应用 */
+*::-webkit-scrollbar,
+::-webkit-scrollbar {
+    width: var(--scrollbar-width, 8px) !important;
+    height: var(--scrollbar-height, 8px) !important;
+    background: transparent !important;
+}
+
+/* 滚动条滑块 - 始终显示，美化样式 */
+*::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb-gradient) !important;
+    border-radius: var(--scrollbar-thumb-radius) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    opacity: var(--scrollbar-thumb-opacity) !important;
+    box-shadow: var(--scrollbar-thumb-shadow) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    background-clip: padding-box !important;
+    position: relative !important;
+    min-height: 20px !important;
+}
+
+/* 滚动条滑块内部高光效果 */
+*::-webkit-scrollbar-thumb::before,
+::-webkit-scrollbar-thumb::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 50% !important;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent) !important;
+    border-radius: var(--scrollbar-thumb-radius) var(--scrollbar-thumb-radius) 0 0 !important;
+    pointer-events: none !important;
+}
+
+/* 滚动条滑块悬停效果 */
+*::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover-gradient) !important;
+    box-shadow: var(--scrollbar-thumb-hover-shadow) !important;
+    opacity: var(--scrollbar-thumb-hover-opacity) !important;
+    transform: scaleX(1.2) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+*::-webkit-scrollbar-thumb:active,
+::-webkit-scrollbar-thumb:active {
+    background: var(--scrollbar-thumb-hover-gradient) !important;
+    opacity: 1 !important;
+    transform: scaleX(1.25) !important;
+}
+
+/* 滚动条轨道 - 始终显示 */
+*::-webkit-scrollbar-track,
+::-webkit-scrollbar-track {
+    background: var(--scrollbar-track-color) !important;
+    border-radius: var(--scrollbar-track-radius) !important;
+    opacity: var(--scrollbar-track-opacity) !important;
+    transition: opacity 0.3s ease !important;
+    border: 1px solid rgba(0, 0, 0, 0.05) !important;
+    margin: 2px !important;
+}
+
+/* 滚动条轨道悬停效果 */
+*::-webkit-scrollbar-track:hover,
+::-webkit-scrollbar-track:hover {
+    opacity: calc(var(--scrollbar-track-opacity) * 1.5) !important;
+}

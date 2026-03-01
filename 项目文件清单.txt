@@ -1,0 +1,179 @@
+阅读器项目 - 需要保存的文件清单
+=====================================
+
+【核心源代码文件】
+
+1. HTML文件
+   - index.html (主界面)
+   - ai-viewer.html (AI查看器界面)
+
+2. JavaScript核心文件
+   - server.js (后端服务器)
+
+3. JavaScript模块目录 (js/)
+   - js/app.js (主应用入口)
+   - js/ai-viewer-app.js (AI查看器应用入口)
+   - js/debug.js (调试工具)
+
+   核心模块 (js/core/)
+   - js/core/api.js (API接口模块)
+   - js/core/state.js (全局状态管理)
+
+   功能模块 (js/modules/)
+   - js/modules/aiService.js (AI服务模块)
+   - js/modules/aiViewer.js (AI查看器模块)
+   - js/modules/batchExecutor.js (批量执行器)
+   - js/modules/chatManager.js (聊天管理器)
+   - js/modules/contextMenu.js (右键菜单)
+   - js/modules/deepseekSender.js (DeepSeek发送器)
+   - js/modules/editor.js (编辑器模块)
+   - js/modules/embeddingService.js (嵌入服务)
+   - js/modules/eventBindings.js (事件绑定)
+   - js/modules/eventManager.js (事件管理器)
+   - js/modules/feedbackManager.js (反馈管理器)
+   - js/modules/feedbackVectorConfig.js (反馈向量配置)
+   - js/modules/feedbackVectorStore.js (反馈向量存储)
+   - js/modules/fileManager.js (文件管理器)
+   - js/modules/fileOrganizer.js (文件整理器)
+   - js/modules/keyboardHandler.js (键盘处理器)
+   - js/modules/layoutManager.js (布局管理器)
+   - js/modules/logManager.js (日志管理器)
+   - js/modules/mermaidRenderer.js (Mermaid渲染器)
+   - js/modules/paragraphEditor.js (段落编辑器)
+   - js/modules/promptManager.js (提示词管理器)
+   - js/modules/tableEditor.js (表格编辑器)
+   - js/modules/themeManager.js (主题管理器)
+   - js/modules/vectorUtils.js (向量工具)
+   - js/modules/viewManager.js (视图管理器)
+   - js/modules/workflowExecutionLogger.js (工作流执行日志器)
+   - js/modules/workflowManager.js (工作流管理器)
+   - js/modules/workflowNodeExecutor.js (工作流节点执行器)
+   - js/modules/workflowVisualizer.js (工作流可视化器)
+
+   使用分析模块 (js/modules/usage/)
+   - js/modules/usage/keywordStats.js (关键字统计)
+   - js/modules/usage/logQuery.js (日志查询)
+
+   工具模块 (js/utils/)
+   - js/utils/fileUtils.js (文件工具)
+   - js/utils/history.js (历史记录)
+   - js/utils/managerHistory.js (管理器历史)
+   - js/utils/markdownConverter.js (Markdown转换器)
+   - js/utils/path.js (路径工具)
+   - js/utils/scrollbarController.js (滚动条控制器)
+
+4. CSS样式文件 (css/)
+   - css/animations.css (动画样式)
+   - css/chat.css (聊天样式)
+   - css/components.css (组件样式)
+   - css/design-system.css (设计系统)
+   - css/edit-mode-toggle.css (编辑模式切换)
+   - css/layout.css (布局样式)
+   - css/themes.css (主题样式)
+
+【配置文件】
+
+5. 项目配置
+   - package.json (项目依赖配置)
+   - package-lock.json (锁定依赖版本)
+   - log-config.json (日志配置)
+
+【数据文件目录】
+
+6. 布局配置 (layouts/)
+   - layouts/*.json (用户自定义布局配置)
+
+7. 提示词配置 (prompts/)
+   - prompts/*.json (用户自定义提示词配置)
+
+8. 主题配置 (themes/)
+   - themes/*.json (用户自定义主题配置)
+
+9. 工作流配置 (workflows/)
+   - workflows/*.json (用户自定义工作流配置)
+
+10. 事件数据 (events/)
+    - events/*.json (用户自定义事件配置)
+
+11. 其他数据文件
+    - trash.json (回收站数据)
+    - deepseek-login-state.json (DeepSeek登录状态，自动生成)
+    - cloudflared.exe (内网穿透工具)
+
+【日志和反馈目录】
+
+12. 执行日志 (log/)
+    - log/*.log (工作流执行日志)
+
+13. 反馈日志 (fankui_log/)
+    - fankui_log/* (反馈系统日志和数据)
+
+【文档和脚本】
+
+14. 文档文件
+    - REFACTORING_COMPLETE.md (重构完成说明)
+    - README.md (项目说明)
+    - README-内网穿透.md (内网穿透说明)
+    - 功能清单.txt (功能清单)
+    - 外部ai调用文档.txt (外部AI调用说明)
+    - 快捷键.txt (快捷键说明)
+    - 项目中追加提示词位置.txt (提示词追加位置说明)
+    - 项目文件清单.txt (当前文件)
+    - 架构升级技术单.md (架构升级说明)
+    - 工作流依赖检查修复说明.md (工作流修复说明)
+    - 工作流运行机制文档.md (工作流机制说明)
+    - 反馈系统向量化升级实现文档.md (反馈系统升级说明)
+    - 架构升级后bug日志.txt (架构升级后日志)
+    - 关键字识别管理功能函数生成模板.md (关键字识别模板)
+    - 关键字识别管理功能需求文档.md (关键字识别需求)
+
+15. 启动脚本
+    - 启动阅读器.bat (启动主应用)
+    - 启动内网穿透.bat (启动内网穿透)
+    - 停止内网穿透.bat (停止内网穿透)
+    - 局域网连接.bat (局域网连接)
+
+【临时和测试目录】
+
+16. 浏览器配置 (deepseek-profile/)
+    - deepseek-profile/* (DeepSeek浏览器配置，运行时生成)
+
+17. 测试目录 (测试/)
+    - 测试/* (测试文件)
+
+18. 工作流节点测试目录 (工作流节点可以使用了，但是还有点bug/)
+    - 工作流节点可以使用了，但是还有点bug/* (工作流节点测试文件)
+
+【不需要保存的目录和文件】
+
+× node_modules/          (可通过 npm install 重新安装)
+× 网页版deepseek/        (子项目，单独管理)
+× 完整源码/              (备份文件夹)
+× *.zip                  (压缩包备份)
+× *.7z                   (压缩包备份)
+× package-lock.json      (可选，可通过 npm install 重新生成)
+
+【注意事项】
+
+1. 如果使用Git版本控制，建议创建.gitignore文件，包含：
+   node_modules/
+   deepseek-profile/
+   *.zip
+   *.7z
+   package-lock.json (可选)
+
+2. 首次在新环境部署时，需要运行：
+   npm install
+
+3. deepseek-profile目录会在首次使用DeepSeek功能时自动创建
+   - 首次使用需要手动登录DeepSeek（浏览器会自动打开）
+   - 登录状态会保存到deepseek-login-state.json
+   - 下次启动会自动使用已保存的登录状态
+
+4. 数据文件（prompts/、themes/、workflows/、events/、layouts/）包含用户的配置和数据，务必保存
+
+5. 日志文件（log/、fankui_log/）包含执行历史和反馈数据，可根据需要保存
+
+6. 回收站文件（trash.json）包含删除文件信息，可根据需要保存
+
+7. 内网穿透相关文件（cloudflared.exe）用于公网访问，可根据需要保存
