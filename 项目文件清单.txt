@@ -61,6 +61,7 @@
    - js/utils/markdownConverter.js (Markdown转换器)
    - js/utils/path.js (路径工具)
    - js/utils/scrollbarController.js (滚动条控制器)
+   - js/utils/viewContainerWrapper.js (视图容器包装器，用于封装和增强视图容器行为)
 
 4. CSS样式文件 (css/)
    - css/animations.css (动画样式)
@@ -95,22 +96,26 @@
 10. 事件数据 (events/)
     - events/*.json (用户自定义事件配置)
 
-11. 其他数据文件
+11. 视图配置 (view/)
+    - view/views.json (视图配置列表，定义视图ID、标题模板、后缀、快捷键等)
+    - view/views_delete.json (已删除视图配置回收站，可用于恢复视图配置)
+
+12. 其他数据文件
     - trash.json (回收站数据)
     - deepseek-login-state.json (DeepSeek登录状态，自动生成)
     - cloudflared.exe (内网穿透工具)
 
 【日志和反馈目录】
 
-12. 执行日志 (log/)
+13. 执行日志 (log/)
     - log/*.log (工作流执行日志)
 
-13. 反馈日志 (fankui_log/)
+14. 反馈日志 (fankui_log/)
     - fankui_log/* (反馈系统日志和数据)
 
 【文档和脚本】
 
-14. 文档文件
+15. 文档文件
     - REFACTORING_COMPLETE.md (重构完成说明)
     - README.md (项目说明)
     - README-内网穿透.md (内网穿透说明)
@@ -127,7 +132,7 @@
     - 关键字识别管理功能函数生成模板.md (关键字识别模板)
     - 关键字识别管理功能需求文档.md (关键字识别需求)
 
-15. 启动脚本
+16. 启动脚本
     - 启动阅读器.bat (启动主应用)
     - 启动内网穿透.bat (启动内网穿透)
     - 停止内网穿透.bat (停止内网穿透)
@@ -135,13 +140,13 @@
 
 【临时和测试目录】
 
-16. 浏览器配置 (deepseek-profile/)
+17. 浏览器配置 (deepseek-profile/)
     - deepseek-profile/* (DeepSeek浏览器配置，运行时生成)
 
-17. 测试目录 (测试/)
+18. 测试目录 (测试/)
     - 测试/* (测试文件)
 
-18. 工作流节点测试目录 (工作流节点可以使用了，但是还有点bug/)
+19. 工作流节点测试目录 (工作流节点可以使用了，但是还有点bug/)
     - 工作流节点可以使用了，但是还有点bug/* (工作流节点测试文件)
 
 【不需要保存的目录和文件】

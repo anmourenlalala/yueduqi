@@ -1,0 +1,14 @@
+[
+  {
+    "type": "workflow",
+    "workflowName": "知识分析学习",
+    "viewId": "分析文本",
+    "timestamp": "2026-03-01T14:17:25.280Z",
+    "eventName": "辅助学习",
+    "stepIndex": 2,
+    "content": "已收到消息。",
+    "stepFilePath": "D:\\会计学习\\奇兵致胜\\会计经济法\\见票即付/2026-03-01_14-16-50-287Z_见票即付_2+分析文本_辅助学习.md",
+    "originalPath": "D:\\会计学习\\奇兵致胜\\会计经济法\\见票即付.md",
+    "loggedAt": "2026-03-01T14:17:25.324Z"
+  }
+]

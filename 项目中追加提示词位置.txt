@@ -96,6 +96,22 @@
    - 如果消息类型已启用且需要追加到提示词，则追加其内容
    - 使用'\n\n'分隔不同部分
 
+7. 外部AI上下文同步与元数据追加
+   文件：js/modules/aiService.js
+   函数：syncContextToServer(), getAllViewsContextWithSync()
+   说明：
+   - 在获取所有视图上下文时，可以选择同时将上下文同步到后端
+   - 当state.externalAiSyncEnabled为true且本次上下文内容与上次不同，会自动：
+     - 调用syncContextToServer(context)
+     - 通过POST /api/views/context 将上下文发送到服务器
+     - 附带元数据metadata，包括：
+       - viewFileMap：每个视图ID对应的当前文件名（未加载视图标记为“未加载”）
+       - globalPromptName：当前选中的全局提示词名称（如果有）
+   - 后端会保存最近一次同步的上下文，供：
+     - GET /api/views/context 返回完整上下文文本
+     - GET /api/views/context/info 查询上下文是否可用、长度和最近更新时间
+   - F12 控制台日志中会记录本次同步的上下文长度和元数据，便于调试
+
 【提示词拼接顺序和优先级】
 
 1. 最高优先级：当前任务内容（用户消息）
