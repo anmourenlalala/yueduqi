@@ -35,6 +35,69 @@ const feedbackEditorState = {
 };
 
 /**
+ * 清理并隐藏“反馈文件生成中”提示状态
+ * 不会触发任何反馈生成逻辑，只是重置计数和 UI
+ */
+function clearFeedbackGeneratingState() {
+    feedbackGeneratingCount = 0;
+    feedbackCompletedCount = 0;
+
+    const noticesRow = document.getElementById('feedback-notices-row');
+    const feedbackNotice = document.getElementById('feedback-generating-notice');
+    if (noticesRow) {
+        noticesRow.style.display = 'none';
+    }
+    if (feedbackNotice) {
+        feedbackNotice.style.display = 'none';
+    }
+
+    if (beforeunloadHandler) {
+        window.removeEventListener('beforeunload', beforeunloadHandler);
+        beforeunloadHandler = null;
+    }
+}
+
+/**
+ * 判断当前是否启用反馈生成（优先读界面上的开关，其次读配置）
+ * @returns {boolean} true 表示启用反馈生成，false 表示完全关闭
+ */
+function isFeedbackEnabled() {
+    try {
+        // 1. 优先读取界面上的复选框（用户可见的真实状态）
+        const uiCheckbox =
+            document.getElementById('feedback-enabled-checkbox') ||
+            document.getElementById('feedback-enabled-checkbox-fullscreen');
+        if (uiCheckbox) {
+            return !!uiCheckbox.checked;
+        }
+    } catch (err) {
+        console.warn('[反馈系统] 读取界面开关状态失败:', err);
+    }
+
+    try {
+        // 2. 其次读取本地配置（localStorage），避免内存状态不同步
+        const saved = localStorage.getItem('feedbackConfig');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed.enabled === false) {
+                clearFeedbackGeneratingState();
+                return false;
+            }
+            if (parsed.enabled === true) return true;
+        }
+    } catch (err) {
+        console.warn('[反馈系统] 读取反馈配置失败:', err);
+    }
+
+    // 3. 最后退回到内存中的配置（默认开启）
+    const enabled = feedbackConfig.enabled !== false;
+    if (!enabled) {
+        clearFeedbackGeneratingState();
+    }
+    return enabled;
+}
+
+/**
  * 打开反馈文件全屏编辑器
  * @param {Array} files - 当前列表中的所有反馈文件
  * @param {number} startIndex - 要打开的文件索引
@@ -328,6 +391,12 @@ function scheduleFeedbackBatchProcessor() {
  * @param {string} sentContent - 节点发送给AI的完整内容（可选）
  */
 export function enqueueFeedbackGeneration(eventName, eventTimestamp, filePath, viewId, stepContent, sentContent = '') {
+    // 全局开关：关闭时直接跳过队列入栈，彻底禁用节点反馈生成
+    if (!isFeedbackEnabled()) {
+        console.log('[反馈系统] 全局反馈已关闭，enqueueFeedbackGeneration 跳过入队');
+        return;
+    }
+
     if (!feedbackGenerationQueues.has(viewId)) {
         feedbackGenerationQueues.set(viewId, {
             queue: [],
@@ -460,6 +529,8 @@ function getProjectRoot(filePath) {
 
 // 反馈配置存储
 let feedbackConfig = {
+    // 全局开关：控制是否启用反馈AI生成（关闭后不会自动生成任何新的反馈文件）
+    enabled: true,
     workflowFeedbackPrompts: {}, // {workflowName: promptName} 每个工作流的反馈提示词
     nodeFeedbackPrompts: {}, // {viewId: promptName}
     feedbackCount: 3, // 默认读取的反馈文件数量（节点反馈和工作流反馈都使用这个值）
@@ -477,6 +548,7 @@ export async function loadFeedbackConfig() {
         if (saved) {
             const parsed = JSON.parse(saved);
             feedbackConfig = {
+                enabled: parsed.enabled !== undefined ? !!parsed.enabled : true,
                 // 兼容旧配置：如果有 workflowFeedbackPrompt，迁移到 workflowFeedbackPrompts
                 workflowFeedbackPrompts: parsed.workflowFeedbackPrompts || (parsed.workflowFeedbackPrompt ? { '默认': parsed.workflowFeedbackPrompt } : {}),
                 nodeFeedbackPrompts: parsed.nodeFeedbackPrompts || {},
@@ -499,6 +571,15 @@ export async function loadFeedbackConfig() {
 export async function saveFeedbackConfig() {
     try {
         // 在保存前，从输入框读取最新值，确保配置是最新的
+        const enabledCheckbox = document.getElementById('feedback-enabled-checkbox');
+        const enabledCheckboxFullscreen = document.getElementById('feedback-enabled-checkbox-fullscreen');
+        // 全局开关：优先读取普通面板，其次全屏面板
+        if (enabledCheckbox) {
+            feedbackConfig.enabled = !!enabledCheckbox.checked;
+        } else if (enabledCheckboxFullscreen) {
+            feedbackConfig.enabled = !!enabledCheckboxFullscreen.checked;
+        }
+
         const feedbackCountInput = document.getElementById('feedback-count-input');
         const feedbackCountInputFullscreen = document.getElementById('feedback-count-input-fullscreen');
         const workflowFeedbackCountInput = document.getElementById('workflow-feedback-count-input');
@@ -569,6 +650,19 @@ export async function renderFeedbackConfig() {
     
     // 渲染反馈数量配置
     const feedbackCountInput = document.getElementById('feedback-count-input');
+    const feedbackEnabledCheckbox = document.getElementById('feedback-enabled-checkbox');
+    if (feedbackEnabledCheckbox) {
+        feedbackEnabledCheckbox.checked = feedbackConfig.enabled !== false;
+        feedbackEnabledCheckbox.addEventListener('change', (e) => {
+            feedbackConfig.enabled = !!e.target.checked;
+            try {
+                localStorage.setItem('feedbackConfig', JSON.stringify(feedbackConfig));
+            } catch (err) {
+                console.warn('实时保存反馈配置失败:', err);
+            }
+        });
+    }
+
     if (feedbackCountInput) {
         feedbackCountInput.value = feedbackConfig.feedbackCount !== undefined ? feedbackConfig.feedbackCount : 0;
         feedbackCountInput.addEventListener('change', (e) => {
@@ -589,6 +683,19 @@ export async function renderFeedbackConfig() {
     
     // 全屏模式的反馈数量配置
     const feedbackCountInputFullscreen = document.getElementById('feedback-count-input-fullscreen');
+    const feedbackEnabledCheckboxFullscreen = document.getElementById('feedback-enabled-checkbox-fullscreen');
+    if (feedbackEnabledCheckboxFullscreen) {
+        feedbackEnabledCheckboxFullscreen.checked = feedbackConfig.enabled !== false;
+        feedbackEnabledCheckboxFullscreen.addEventListener('change', (e) => {
+            feedbackConfig.enabled = !!e.target.checked;
+            try {
+                localStorage.setItem('feedbackConfig', JSON.stringify(feedbackConfig));
+            } catch (err) {
+                console.warn('实时保存反馈配置失败:', err);
+            }
+        });
+    }
+
     if (feedbackCountInputFullscreen) {
         feedbackCountInputFullscreen.value = feedbackConfig.feedbackCount !== undefined ? feedbackConfig.feedbackCount : 0;
         feedbackCountInputFullscreen.addEventListener('change', (e) => {
@@ -1073,9 +1180,18 @@ export async function generateWorkflowFeedback(eventName, eventTimestamp, filePa
         if (saved) {
             const parsed = JSON.parse(saved);
             feedbackConfig.workflowFeedbackPrompts = parsed.workflowFeedbackPrompts || {};
+            if (parsed.enabled !== undefined) {
+                feedbackConfig.enabled = !!parsed.enabled;
+            }
         }
     } catch (err) {
         console.warn('[反馈系统] 加载配置失败，使用内存中的配置:', err);
+    }
+
+    // 全局开关：如果反馈系统被关闭，直接跳过生成
+    if (!isFeedbackEnabled()) {
+        console.log('[反馈系统] 全局反馈已关闭，跳过工作流反馈生成');
+        return null;
     }
     
     // 获取该工作流的反馈提示词
@@ -1244,14 +1360,22 @@ export async function generateNodeFeedback(eventName, eventTimestamp, filePath, 
         const saved = localStorage.getItem('feedbackConfig');
         if (saved) {
             const parsed = JSON.parse(saved);
-            feedbackConfig = {
-                workflowFeedbackPrompt: parsed.workflowFeedbackPrompt || null,
-                nodeFeedbackPrompts: parsed.nodeFeedbackPrompts || {}
-            };
+            // 只更新相关字段，避免覆盖其他配置
+            feedbackConfig.workflowFeedbackPrompts = parsed.workflowFeedbackPrompts || feedbackConfig.workflowFeedbackPrompts || {};
+            feedbackConfig.nodeFeedbackPrompts = parsed.nodeFeedbackPrompts || feedbackConfig.nodeFeedbackPrompts || {};
+            if (parsed.enabled !== undefined) {
+                feedbackConfig.enabled = !!parsed.enabled;
+            }
             console.log(`[反馈系统] 重新加载配置，视图 "${viewId}" 的配置:`, feedbackConfig.nodeFeedbackPrompts[viewId] || '未配置');
         }
     } catch (err) {
         console.warn('[反馈系统] 加载配置失败，使用内存中的配置:', err);
+    }
+
+    // 全局开关：如果反馈系统被关闭，直接跳过生成
+    if (!isFeedbackEnabled()) {
+        console.log('[反馈系统] 全局反馈已关闭，跳过节点反馈生成');
+        return null;
     }
     
     // 检查是否配置了该视图的反馈提示词

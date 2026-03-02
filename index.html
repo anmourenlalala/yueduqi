@@ -942,6 +942,12 @@
                         <div class="section-content">
                             <div id="feedback-quantity-config-scrollable" class="feedback-config-scrollable">
                     <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="feedback-enabled-checkbox" class="checkbox-input" checked>
+                            <span class="checkbox-text">启用 AI 反馈生成（关闭后不会自动生成新的反馈文件）</span>
+                        </label>
+                    </div>
+                    <div class="form-group">
                         <label class="form-label" for="feedback-count-input">读取历史反馈数量</label>
                         <input type="number" id="feedback-count-input" class="form-input" min="0" value="0" style="width:120px;">
                     </div>
@@ -1085,6 +1091,12 @@
             <div class="feedback-config-content active" id="feedback-config-quantity-content">
                 <div class="feedback-config-content-section">
                     <h3 class="section-title" style="margin-bottom: var(--space-4);">📊 反馈数量配置</h3>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="feedback-enabled-checkbox-fullscreen" class="checkbox-input" checked>
+                            <span class="checkbox-text">启用 AI 反馈生成（关闭后不会自动生成新的反馈文件）</span>
+                        </label>
+                    </div>
                     <div class="form-group">
                         <label class="form-label" for="feedback-count-input-fullscreen">读取历史反馈数量</label>
                         <input type="number" id="feedback-count-input-fullscreen" class="form-input" min="0" value="0" style="width:120px;">

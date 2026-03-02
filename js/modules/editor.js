@@ -357,15 +357,22 @@ export async function handlePaste() {
         return;
     }
     
-    // 检查目录一致性：如果原始文件存在，确保目标路径的目录与原始文件的目录一致
+    // 检查目录一致性：
+    // - 允许：目标目录 == 原始目录，或目标目录是原始目录的子目录（例如在原目录下新建分类文件夹）
+    // - 禁止：目标目录跑到原始目录之外（避免误把内容写到别的项目/盘符）
     const originalPathNormalized = state.originalPath.replace(/\\/g, '/');
     const originalDir = originalPathNormalized.substring(0, originalPathNormalized.lastIndexOf('/') + 1);
     const targetPathNormalized = targetPath.replace(/\\/g, '/');
     const targetDir = targetPathNormalized.substring(0, targetPathNormalized.lastIndexOf('/') + 1);
-    
-    if (originalDir && targetDir !== originalDir) {
-        alert(`无法创建文件：目标目录与原始文件目录不一致。\n原始目录: ${originalDir}\n目标目录: ${targetDir}`);
-        return;
+
+    if (originalDir) {
+        const originalDirKey = originalDir.toLowerCase();
+        const targetDirKey = targetDir.toLowerCase();
+        const isSameOrChildDir = targetDirKey === originalDirKey || targetDirKey.startsWith(originalDirKey);
+        if (!isSameOrChildDir) {
+            alert(`无法创建文件：目标目录不在原始目录范围内。\n原始目录: ${originalDir}\n目标目录: ${targetDir}`);
+            return;
+        }
     }
     
     // 检查并请求剪贴板权限
